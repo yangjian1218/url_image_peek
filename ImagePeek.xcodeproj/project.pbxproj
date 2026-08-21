@@ -1,0 +1,108 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* ImagePeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ImagePeekApp.swift */; };
+		A10000000000000000000002 /* SpreadsheetCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* SpreadsheetCoreTests.swift */; };
+		A10000000000000000000003 /* SpreadsheetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* SpreadsheetModels.swift */; };
+		A10000000000000000000004 /* SpreadsheetAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* SpreadsheetAdapter.swift */; };
+		A10000000000000000000005 /* ActiveAppDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* ActiveAppDetector.swift */; };
+		A10000000000000000000006 /* WPSAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* WPSAdapter.swift */; };
+		A10000000000000000000007 /* ExcelAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* ExcelAdapter.swift */; };
+		A10000000000000000000008 /* ImageEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* ImageEngine.swift */; };
+		A10000000000000000000009 /* PreviewEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* PreviewEngine.swift */; };
+		A1000000000000000000000A /* PermissionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* PermissionManagerTests.swift */; };
+		A1000000000000000000000B /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000F /* PermissionManager.swift */; };
+		A1000000000000000000000C /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* MenuBarController.swift */; };
+		A1000000000000000000000D /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* SettingsWindowController.swift */; };
+		A1000000000000000000000E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* SettingsView.swift */; };
+		A1000000000000000000000F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A30000000000000000000001 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = A90000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = A70000000000000000000001; remoteInfo = ImagePeek; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* ImagePeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePeekApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* SpreadsheetCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpreadsheetCoreTests.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000004 /* ImagePeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImagePeek.entitlements; sourceTree = "<group>"; };
+		A20000000000000000000005 /* ImagePeek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImagePeek.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000006 /* ImagePeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ImagePeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000007 /* SpreadsheetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpreadsheetModels.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* SpreadsheetAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpreadsheetAdapter.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* ActiveAppDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveAppDetector.swift; sourceTree = "<group>"; };
+		A2000000000000000000000A /* WPSAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WPSAdapter.swift; sourceTree = "<group>"; };
+		A2000000000000000000000B /* ExcelAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcelAdapter.swift; sourceTree = "<group>"; };
+		A2000000000000000000000C /* ImageEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEngine.swift; sourceTree = "<group>"; };
+		A2000000000000000000000D /* PreviewEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewEngine.swift; sourceTree = "<group>"; };
+		A2000000000000000000000E /* PermissionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManagerTests.swift; sourceTree = "<group>"; };
+		A2000000000000000000000F /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		A20000000000000000000010 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A40000000000000000000001 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A40000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A50000000000000000000001 = {isa = PBXGroup; children = (A50000000000000000000002 /* ImagePeek */, A50000000000000000000003 /* ImagePeekTests */, A50000000000000000000004 /* Products */); sourceTree = "<group>"; };
+		A50000000000000000000002 /* ImagePeek */ = {isa = PBXGroup; children = (A50000000000000000000005 /* AppShell */, A50000000000000000000006 /* SpreadsheetEngine */, A50000000000000000000007 /* ImageEngine */, A50000000000000000000008 /* PreviewEngine */, A50000000000000000000009 /* Resources */, A20000000000000000000003 /* Info.plist */, A20000000000000000000004 /* ImagePeek.entitlements */); path = ImagePeek; sourceTree = "<group>"; };
+		A50000000000000000000003 /* ImagePeekTests */ = {isa = PBXGroup; children = (A20000000000000000000002 /* SpreadsheetCoreTests.swift */, A2000000000000000000000E /* PermissionManagerTests.swift */); path = ImagePeekTests; sourceTree = "<group>"; };
+		A50000000000000000000004 /* Products */ = {isa = PBXGroup; children = (A20000000000000000000005 /* ImagePeek.app */, A20000000000000000000006 /* ImagePeekTests.xctest */); name = Products; sourceTree = "<group>"; };
+		A50000000000000000000005 /* AppShell */ = {isa = PBXGroup; children = (A20000000000000000000001 /* ImagePeekApp.swift */, A2000000000000000000000F /* PermissionManager.swift */, A20000000000000000000010 /* MenuBarController.swift */, A20000000000000000000011 /* SettingsWindowController.swift */, A20000000000000000000012 /* SettingsView.swift */); path = AppShell; sourceTree = "<group>"; };
+		A50000000000000000000006 /* SpreadsheetEngine */ = {isa = PBXGroup; children = (A20000000000000000000007 /* SpreadsheetModels.swift */, A20000000000000000000008 /* SpreadsheetAdapter.swift */, A20000000000000000000009 /* ActiveAppDetector.swift */, A2000000000000000000000A /* WPSAdapter.swift */, A2000000000000000000000B /* ExcelAdapter.swift */); path = SpreadsheetEngine; sourceTree = "<group>"; };
+		A50000000000000000000007 /* ImageEngine */ = {isa = PBXGroup; children = (A2000000000000000000000C /* ImageEngine.swift */); path = ImageEngine; sourceTree = "<group>"; };
+		A50000000000000000000008 /* PreviewEngine */ = {isa = PBXGroup; children = (A2000000000000000000000D /* PreviewEngine.swift */); path = PreviewEngine; sourceTree = "<group>"; };
+		A50000000000000000000009 /* Resources */ = {isa = PBXGroup; children = (A20000000000000000000013 /* Assets.xcassets */); path = Resources; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A70000000000000000000001 /* ImagePeek */ = {isa = PBXNativeTarget; buildConfigurationList = A80000000000000000000001; buildPhases = (A60000000000000000000001 /* Sources */, A40000000000000000000001 /* Frameworks */, A60000000000000000000002 /* Resources */); buildRules = (); dependencies = (); name = ImagePeek; productName = ImagePeek; productReference = A20000000000000000000005 /* ImagePeek.app */; productType = "com.apple.product-type.application"; };
+		A70000000000000000000002 /* ImagePeekTests */ = {isa = PBXNativeTarget; buildConfigurationList = A80000000000000000000002; buildPhases = (A60000000000000000000003 /* Sources */, A40000000000000000000002 /* Frameworks */, A60000000000000000000004 /* Resources */); buildRules = (); dependencies = (A30000000000000000000002 /* PBXTargetDependency */); name = ImagePeekTests; productName = ImagePeekTests; productReference = A20000000000000000000006 /* ImagePeekTests.xctest */; productType = "com.apple.product-type.bundle.unit-test"; };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A90000000000000000000001 /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastSwiftUpdateCheck = 1610; LastUpgradeCheck = 1610; TargetAttributes = {A70000000000000000000001 = {CreatedOnToolsVersion = 16.1; }; A70000000000000000000002 = {CreatedOnToolsVersion = 16.1; TestTargetID = A70000000000000000000001; }; }; }; buildConfigurationList = A80000000000000000000003; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A50000000000000000000001; productRefGroup = A50000000000000000000004 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (A70000000000000000000001 /* ImagePeek */, A70000000000000000000002 /* ImagePeekTests */); };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A60000000000000000000002 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000000F /* Assets.xcassets in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+		A60000000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A60000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* ImagePeekApp.swift in Sources */, A10000000000000000000003 /* SpreadsheetModels.swift in Sources */, A10000000000000000000004 /* SpreadsheetAdapter.swift in Sources */, A10000000000000000000005 /* ActiveAppDetector.swift in Sources */, A10000000000000000000006 /* WPSAdapter.swift in Sources */, A10000000000000000000007 /* ExcelAdapter.swift in Sources */, A10000000000000000000008 /* ImageEngine.swift in Sources */, A10000000000000000000009 /* PreviewEngine.swift in Sources */, A1000000000000000000000B /* PermissionManager.swift in Sources */, A1000000000000000000000C /* MenuBarController.swift in Sources */, A1000000000000000000000D /* SettingsWindowController.swift in Sources */, A1000000000000000000000E /* SettingsView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+		A60000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000002 /* SpreadsheetCoreTests.swift in Sources */, A1000000000000000000000A /* PermissionManagerTests.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A30000000000000000000002 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = A70000000000000000000001 /* ImagePeek */; targetProxy = A30000000000000000000001 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B10000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_ENTITLEMENTS = ImagePeek/ImagePeek.entitlements; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = ImagePeek/Info.plist; MACOSX_DEPLOYMENT_TARGET = 13.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.imagepeek.app; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SWIFT_VERSION = 5.0; }; name = Debug; };
+		B10000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_ENTITLEMENTS = ImagePeek/ImagePeek.entitlements; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = ImagePeek/Info.plist; MACOSX_DEPLOYMENT_TARGET = 13.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.imagepeek.app; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_VERSION = 5.0; }; name = Release; };
+		B10000000000000000000003 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = com.imagepeek.app.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SWIFT_VERSION = 5.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ImagePeek.app/Contents/MacOS/ImagePeek"; }; name = Debug; };
+		B10000000000000000000004 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = com.imagepeek.app.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SWIFT_VERSION = 5.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ImagePeek.app/Contents/MacOS/ImagePeek"; }; name = Release; };
+		B10000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; MACOSX_DEPLOYMENT_TARGET = 13.0; ONLY_ACTIVE_ARCH = YES; SDKROOT = macosx; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		B10000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; COPY_PHASE_STRIP = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; ENABLE_NS_ASSERTIONS = NO; GCC_C_LANGUAGE_STANDARD = gnu17; MACOSX_DEPLOYMENT_TARGET = 13.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A80000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (B10000000000000000000001 /* Debug */, B10000000000000000000002 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A80000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (B10000000000000000000003 /* Debug */, B10000000000000000000004 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A80000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (B10000000000000000000005 /* Debug */, B10000000000000000000006 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = A90000000000000000000001 /* Project object */;
+}

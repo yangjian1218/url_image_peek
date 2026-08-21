@@ -189,6 +189,69 @@ final class ImageEngineTests: XCTestCase {
         XCTAssertEqual(oldValue, Data([0x01]))
         XCTAssertEqual(newValue, Data([0x02]))
     }
+
+    func testDiskCacheReadsStoredDataAfterCacheIsRecreated() async {
+        let directory = makeTemporaryCacheDirectory()
+        let key = ImageCacheKey(
+            originalURL: URL(string: "https://example.com/image.jpg")!,
+            optimizationRuleVersion: "v1"
+        )
+        let data = Data([0x01, 0x02])
+
+        let writer = DiskImageCache(directory: directory)
+        await writer.insert(data, for: key)
+
+        let reader = DiskImageCache(directory: directory)
+        let cachedValue = await reader.value(for: key)
+        XCTAssertEqual(cachedValue, data)
+    }
+
+    func testDiskCacheRemovesEntryUnusedForMoreThanThirtyDays() async {
+        let directory = makeTemporaryCacheDirectory()
+        let key = ImageCacheKey(
+            originalURL: URL(string: "https://example.com/old.jpg")!,
+            optimizationRuleVersion: "v1"
+        )
+        let oldDate = Date(timeIntervalSince1970: 1_000_000)
+        let expirationInterval: TimeInterval = 30 * 24 * 60 * 60
+
+        let writer = DiskImageCache(directory: directory, clock: FixedCacheClock(now: oldDate))
+        await writer.insert(Data([0x01]), for: key)
+
+        let reader = DiskImageCache(
+            directory: directory,
+            clock: FixedCacheClock(now: oldDate.addingTimeInterval(expirationInterval + 1))
+        )
+        let cachedValue = await reader.value(for: key)
+        XCTAssertNil(cachedValue)
+    }
+
+    func testDiskCacheEvictsLeastRecentlyUsedEntryWhenByteLimitIsExceeded() async {
+        let directory = makeTemporaryCacheDirectory()
+        let first = ImageCacheKey(originalURL: URL(string: "https://example.com/1.jpg")!, optimizationRuleVersion: "v1")
+        let second = ImageCacheKey(originalURL: URL(string: "https://example.com/2.jpg")!, optimizationRuleVersion: "v1")
+        let third = ImageCacheKey(originalURL: URL(string: "https://example.com/3.jpg")!, optimizationRuleVersion: "v1")
+        let initialDate = Date(timeIntervalSince1970: 1_000_000)
+        let sixBytes = Data(repeating: 0x01, count: 6)
+
+        let firstWriter = DiskImageCache(directory: directory, maximumBytes: 12, clock: FixedCacheClock(now: initialDate))
+        await firstWriter.insert(sixBytes, for: first)
+        let secondWriter = DiskImageCache(directory: directory, maximumBytes: 12, clock: FixedCacheClock(now: initialDate.addingTimeInterval(1)))
+        await secondWriter.insert(sixBytes, for: second)
+        let firstReader = DiskImageCache(directory: directory, maximumBytes: 12, clock: FixedCacheClock(now: initialDate.addingTimeInterval(2)))
+        _ = await firstReader.value(for: first)
+
+        let thirdWriter = DiskImageCache(directory: directory, maximumBytes: 12, clock: FixedCacheClock(now: initialDate.addingTimeInterval(3)))
+        await thirdWriter.insert(sixBytes, for: third)
+        let reader = DiskImageCache(directory: directory, maximumBytes: 12, clock: FixedCacheClock(now: initialDate.addingTimeInterval(4)))
+
+        let firstValue = await reader.value(for: first)
+        let secondValue = await reader.value(for: second)
+        let thirdValue = await reader.value(for: third)
+        XCTAssertEqual(firstValue, sixBytes)
+        XCTAssertNil(secondValue)
+        XCTAssertEqual(thirdValue, sixBytes)
+    }
 }
 
 private struct ImmediateDataFetcher: RemoteDataFetching {
@@ -237,4 +300,19 @@ private actor ControlledDataFetcher: RemoteDataFetching {
         slowCompletion?.resume(returning: slowData)
         slowCompletion = nil
     }
+}
+
+private struct FixedCacheClock: CacheClock {
+    let now: Date
+
+    func currentDate() -> Date {
+        now
+    }
+}
+
+private func makeTemporaryCacheDirectory() -> URL {
+    let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ImagePeekTests-\(UUID().uuidString)", isDirectory: true)
+    try! FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    return directory
 }

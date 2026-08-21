@@ -125,6 +125,70 @@ final class ImageEngineTests: XCTestCase {
         let result = try await request.value
         XCTAssertNil(result)
     }
+
+    func testMemoryCacheReturnsStoredValue() async {
+        let cache = MemoryImageCache(capacity: 2)
+        let key = ImageCacheKey(
+            originalURL: URL(string: "https://example.com/image.jpg")!,
+            optimizationRuleVersion: "v1"
+        )
+        let data = Data([0x01, 0x02])
+
+        await cache.insert(data, for: key)
+
+        let cachedValue = await cache.value(for: key)
+        XCTAssertEqual(cachedValue, data)
+    }
+
+    func testMemoryCacheEvictsLeastRecentlyUsedEntryWhenCapacityExceeded() async {
+        let cache = MemoryImageCache(capacity: 2)
+        let first = ImageCacheKey(originalURL: URL(string: "https://example.com/1.jpg")!, optimizationRuleVersion: "v1")
+        let second = ImageCacheKey(originalURL: URL(string: "https://example.com/2.jpg")!, optimizationRuleVersion: "v1")
+        let third = ImageCacheKey(originalURL: URL(string: "https://example.com/3.jpg")!, optimizationRuleVersion: "v1")
+
+        await cache.insert(Data([0x01]), for: first)
+        await cache.insert(Data([0x02]), for: second)
+        _ = await cache.value(for: first)
+        await cache.insert(Data([0x03]), for: third)
+
+        let firstValue = await cache.value(for: first)
+        let secondValue = await cache.value(for: second)
+        let thirdValue = await cache.value(for: third)
+        XCTAssertEqual(firstValue, Data([0x01]))
+        XCTAssertNil(secondValue)
+        XCTAssertEqual(thirdValue, Data([0x03]))
+    }
+
+    func testMemoryCacheReplacesExistingValueWithoutGrowing() async {
+        let cache = MemoryImageCache(capacity: 2)
+        let key = ImageCacheKey(
+            originalURL: URL(string: "https://example.com/image.jpg")!,
+            optimizationRuleVersion: "v1"
+        )
+
+        await cache.insert(Data([0x01]), for: key)
+        await cache.insert(Data([0x02]), for: key)
+
+        let count = await cache.count
+        let cachedValue = await cache.value(for: key)
+        XCTAssertEqual(count, 1)
+        XCTAssertEqual(cachedValue, Data([0x02]))
+    }
+
+    func testMemoryCacheSeparatesOptimizationRuleVersions() async {
+        let cache = MemoryImageCache(capacity: 2)
+        let url = URL(string: "https://example.com/image.jpg")!
+        let oldRule = ImageCacheKey(originalURL: url, optimizationRuleVersion: "v1")
+        let newRule = ImageCacheKey(originalURL: url, optimizationRuleVersion: "v2")
+
+        await cache.insert(Data([0x01]), for: oldRule)
+        await cache.insert(Data([0x02]), for: newRule)
+
+        let oldValue = await cache.value(for: oldRule)
+        let newValue = await cache.value(for: newRule)
+        XCTAssertEqual(oldValue, Data([0x01]))
+        XCTAssertEqual(newValue, Data([0x02]))
+    }
 }
 
 private struct ImmediateDataFetcher: RemoteDataFetching {

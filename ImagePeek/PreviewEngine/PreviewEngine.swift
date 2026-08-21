@@ -50,7 +50,7 @@ enum PreviewShortcut: Equatable {
 
 enum PreviewShortcutPolicy {
     static func canHandle(_ shortcut: PreviewShortcut, app: SpreadsheetApp?, hasPreview: Bool) -> Bool {
-        guard hasPreview, app == .wps || hasPreview, app == .excel else { return false }
+        guard hasPreview, let app, app == .wps || app == .excel else { return false }
         switch shortcut {
         case .escape, .space, .optionC, .optionR, .optionP:
             return true

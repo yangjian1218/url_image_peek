@@ -42,4 +42,15 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(PreviewZoom.clamped(2), 2)
         XCTAssertEqual(PreviewZoom.clamped(6), 5)
     }
+
+    func testShortcutPolicyAllowsOnlyPreviewContextInSupportedSpreadsheet() {
+        XCTAssertTrue(PreviewShortcutPolicy.canHandle(.space, app: .wps, hasPreview: true))
+        XCTAssertTrue(PreviewShortcutPolicy.canHandle(.escape, app: .excel, hasPreview: true))
+        XCTAssertFalse(PreviewShortcutPolicy.canHandle(.space, app: nil, hasPreview: true))
+        XCTAssertFalse(PreviewShortcutPolicy.canHandle(.space, app: .wps, hasPreview: false))
+    }
+
+    func testShortcutPolicyRejectsBareLetters() {
+        XCTAssertFalse(PreviewShortcutPolicy.canHandle(.letter("p"), app: .wps, hasPreview: true))
+    }
 }

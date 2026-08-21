@@ -1,4 +1,4 @@
-protocol SpreadsheetAdapter: Sendable {
+protocol SpreadsheetAdapter {
     var app: SpreadsheetApp { get }
     var capability: AdapterCapability { get }
 

@@ -1,10 +1,22 @@
 import AppKit
 
-struct ActiveAppDetector {
+protocol ActiveApplicationDetecting {
+    func activeSpreadsheetApp() -> SpreadsheetApp?
+}
+
+struct ActiveAppDetector: ActiveApplicationDetecting {
     private static let supportedBundleIdentifiers: [String: SpreadsheetApp] = [
         "com.kingsoft.wpsoffice.mac": .wps,
         "com.microsoft.excel": .excel,
     ]
+
+    private let bundleIdentifierProvider: () -> String?
+
+    init(bundleIdentifierProvider: @escaping () -> String? = {
+        NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+    }) {
+        self.bundleIdentifierProvider = bundleIdentifierProvider
+    }
 
     static func classify(bundleIdentifier: String?) -> SpreadsheetApp? {
         guard let bundleIdentifier else { return nil }
@@ -12,6 +24,6 @@ struct ActiveAppDetector {
     }
 
     func activeSpreadsheetApp() -> SpreadsheetApp? {
-        Self.classify(bundleIdentifier: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
+        Self.classify(bundleIdentifier: bundleIdentifierProvider())
     }
 }

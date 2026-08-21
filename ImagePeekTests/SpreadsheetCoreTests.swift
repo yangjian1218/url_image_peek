@@ -100,14 +100,55 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(fallback.callCount, 0)
     }
 
-    func testExcelAdapterStartsAsSafeNoOp() async {
-        let adapter = ExcelAdapter()
+    func testExcelAdapterIsUnavailableWhenInactiveOrUntrusted() async {
+        let adapter = ExcelAdapter(
+            accessibilityClient: FakeAccessibilityClient(isTrusted: false, snapshot: nil),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .wps)
+        )
 
         XCTAssertEqual(adapter.app, .excel)
         XCTAssertFalse(adapter.isAvailable())
-        XCTAssertEqual(adapter.capability, .safeNoOp)
         let cell = await adapter.currentCell()
         XCTAssertNil(cell)
+    }
+
+    func testExcelReadsAccessibilityTextBeforeFallback() async {
+        let fallback = ExcelFallbackSpy(result: "fallback")
+        let adapter = ExcelAdapter(
+            accessibilityClient: FakeAccessibilityClient(
+                isTrusted: true,
+                snapshot: AccessibilityCellSnapshot(
+                    text: " https://example.com/excel.jpg ",
+                    frame: CGRect(x: 20, y: 30, width: 80, height: 20)
+                )
+            ),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .excel),
+            fallback: fallback
+        )
+
+        let cell = await adapter.currentCell()
+
+        XCTAssertEqual(cell?.text, "https://example.com/excel.jpg")
+        XCTAssertEqual(cell?.frame, CGRect(x: 20, y: 30, width: 80, height: 20))
+        XCTAssertEqual(fallback.callCount, 0)
+    }
+
+    func testExcelUsesAdapterFallbackWhenAccessibilityHasNoText() async {
+        let fallback = ExcelFallbackSpy(result: "https://example.com/fallback.jpg")
+        let adapter = ExcelAdapter(
+            accessibilityClient: FakeAccessibilityClient(
+                isTrusted: true,
+                snapshot: AccessibilityCellSnapshot(text: nil, frame: nil)
+            ),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .excel),
+            fallback: fallback
+        )
+
+        let cell = await adapter.currentCell()
+
+        XCTAssertEqual(cell?.text, "https://example.com/fallback.jpg")
+        XCTAssertEqual(cell?.app, .excel)
+        XCTAssertEqual(fallback.callCount, 1)
     }
 
     func testSelectionChangeRequestsCellReadForSupportedSpreadsheet() {
@@ -188,6 +229,18 @@ private final class ClipboardFallbackSpy: ClipboardFallback {
     init(result: String?) {
         self.result = result
     }
+
+    func readCurrentCellText() async -> String? {
+        callCount += 1
+        return result
+    }
+}
+
+private final class ExcelFallbackSpy: ExcelCellTextFallback {
+    let result: String?
+    private(set) var callCount = 0
+
+    init(result: String?) { self.result = result }
 
     func readCurrentCellText() async -> String? {
         callCount += 1

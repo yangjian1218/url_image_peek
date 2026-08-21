@@ -53,4 +53,22 @@ final class PreviewEngineTests: XCTestCase {
     func testShortcutPolicyRejectsBareLetters() {
         XCTAssertFalse(PreviewShortcutPolicy.canHandle(.letter("p"), app: .wps, hasPreview: true))
     }
+
+    func testSettingsStorePersistsAndRestoresSettings() {
+        let suiteName = "ImagePeekTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = SettingsStore(userDefaults: defaults)
+        let settings = ImagePeekSettings(automaticPreview: false, launchAtLogin: true, imageColumn: 3)
+
+        store.save(settings)
+
+        XCTAssertEqual(store.load(), settings)
+    }
+
+    func testImageColumnFilterIncludesOnlyConfiguredColumn() {
+        XCTAssertTrue(ImageColumnFilter(column: 3).includes(column: 3))
+        XCTAssertFalse(ImageColumnFilter(column: 3).includes(column: 2))
+        XCTAssertTrue(ImageColumnFilter.all.includes(column: nil))
+    }
 }

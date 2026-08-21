@@ -21,6 +21,7 @@
 		A1000000000000000000000D /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* SettingsWindowController.swift */; };
 		A1000000000000000000000E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* SettingsView.swift */; };
 		A1000000000000000000000F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* Assets.xcassets */; };
+		A10000000000000000000010 /* NavigationStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* NavigationStateMachine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,7 @@
 		A20000000000000000000011 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		A20000000000000000000012 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A20000000000000000000013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A20000000000000000000014 /* NavigationStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationStateMachine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,7 +62,7 @@
 		A50000000000000000000003 /* ImagePeekTests */ = {isa = PBXGroup; children = (A20000000000000000000002 /* SpreadsheetCoreTests.swift */, A2000000000000000000000E /* PermissionManagerTests.swift */); path = ImagePeekTests; sourceTree = "<group>"; };
 		A50000000000000000000004 /* Products */ = {isa = PBXGroup; children = (A20000000000000000000005 /* ImagePeek.app */, A20000000000000000000006 /* ImagePeekTests.xctest */); name = Products; sourceTree = "<group>"; };
 		A50000000000000000000005 /* AppShell */ = {isa = PBXGroup; children = (A20000000000000000000001 /* ImagePeekApp.swift */, A2000000000000000000000F /* PermissionManager.swift */, A20000000000000000000010 /* MenuBarController.swift */, A20000000000000000000011 /* SettingsWindowController.swift */, A20000000000000000000012 /* SettingsView.swift */); path = AppShell; sourceTree = "<group>"; };
-		A50000000000000000000006 /* SpreadsheetEngine */ = {isa = PBXGroup; children = (A20000000000000000000007 /* SpreadsheetModels.swift */, A20000000000000000000008 /* SpreadsheetAdapter.swift */, A20000000000000000000009 /* ActiveAppDetector.swift */, A2000000000000000000000A /* WPSAdapter.swift */, A2000000000000000000000B /* ExcelAdapter.swift */); path = SpreadsheetEngine; sourceTree = "<group>"; };
+		A50000000000000000000006 /* SpreadsheetEngine */ = {isa = PBXGroup; children = (A20000000000000000000007 /* SpreadsheetModels.swift */, A20000000000000000000008 /* SpreadsheetAdapter.swift */, A20000000000000000000009 /* ActiveAppDetector.swift */, A2000000000000000000000A /* WPSAdapter.swift */, A2000000000000000000000B /* ExcelAdapter.swift */, A20000000000000000000014 /* NavigationStateMachine.swift */); path = SpreadsheetEngine; sourceTree = "<group>"; };
 		A50000000000000000000007 /* ImageEngine */ = {isa = PBXGroup; children = (A2000000000000000000000C /* ImageEngine.swift */); path = ImageEngine; sourceTree = "<group>"; };
 		A50000000000000000000008 /* PreviewEngine */ = {isa = PBXGroup; children = (A2000000000000000000000D /* PreviewEngine.swift */); path = PreviewEngine; sourceTree = "<group>"; };
 		A50000000000000000000009 /* Resources */ = {isa = PBXGroup; children = (A20000000000000000000013 /* Assets.xcassets */); path = Resources; sourceTree = "<group>"; };
@@ -81,7 +83,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A60000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* ImagePeekApp.swift in Sources */, A10000000000000000000003 /* SpreadsheetModels.swift in Sources */, A10000000000000000000004 /* SpreadsheetAdapter.swift in Sources */, A10000000000000000000005 /* ActiveAppDetector.swift in Sources */, A10000000000000000000006 /* WPSAdapter.swift in Sources */, A10000000000000000000007 /* ExcelAdapter.swift in Sources */, A10000000000000000000008 /* ImageEngine.swift in Sources */, A10000000000000000000009 /* PreviewEngine.swift in Sources */, A1000000000000000000000B /* PermissionManager.swift in Sources */, A1000000000000000000000C /* MenuBarController.swift in Sources */, A1000000000000000000000D /* SettingsWindowController.swift in Sources */, A1000000000000000000000E /* SettingsView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+		A60000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* ImagePeekApp.swift in Sources */, A10000000000000000000003 /* SpreadsheetModels.swift in Sources */, A10000000000000000000004 /* SpreadsheetAdapter.swift in Sources */, A10000000000000000000005 /* ActiveAppDetector.swift in Sources */, A10000000000000000000006 /* WPSAdapter.swift in Sources */, A10000000000000000000007 /* ExcelAdapter.swift in Sources */, A10000000000000000000008 /* ImageEngine.swift in Sources */, A10000000000000000000009 /* PreviewEngine.swift in Sources */, A1000000000000000000000B /* PermissionManager.swift in Sources */, A1000000000000000000000C /* MenuBarController.swift in Sources */, A1000000000000000000000D /* SettingsWindowController.swift in Sources */, A1000000000000000000000E /* SettingsView.swift in Sources */, A10000000000000000000010 /* NavigationStateMachine.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 		A60000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000002 /* SpreadsheetCoreTests.swift in Sources */, A1000000000000000000000A /* PermissionManagerTests.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 

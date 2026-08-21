@@ -109,6 +109,56 @@ final class SpreadsheetCoreTests: XCTestCase {
         let cell = await adapter.currentCell()
         XCTAssertNil(cell)
     }
+
+    func testSelectionChangeRequestsCellReadForSupportedSpreadsheet() {
+        var machine = NavigationStateMachine()
+
+        let effect = machine.handle(.cellSelectionChanged(app: .wps))
+
+        XCTAssertEqual(effect, .requestCellRead)
+        XCTAssertEqual(machine.state, .awaitingCellRead(app: .wps))
+    }
+
+    func testSuccessfulCellReadShowsPreview() {
+        var machine = NavigationStateMachine()
+        let context = CellContext(text: "https://example.com/a.jpg", frame: nil, app: .wps, row: nil, column: nil)
+        _ = machine.handle(.cellSelectionChanged(app: .wps))
+
+        let effect = machine.handle(.cellReadCompleted(context))
+
+        XCTAssertEqual(effect, .showPreview(context))
+        XCTAssertEqual(machine.state, .visible(context))
+    }
+
+    func testEscHidesOnlyCurrentPreviewAndNextSelectionRequestsAgain() {
+        var machine = NavigationStateMachine()
+        let context = CellContext(text: "https://example.com/a.jpg", frame: nil, app: .wps, row: nil, column: nil)
+        _ = machine.handle(.cellSelectionChanged(app: .wps))
+        _ = machine.handle(.cellReadCompleted(context))
+
+        XCTAssertEqual(machine.handle(.escape), .hidePreview)
+        XCTAssertEqual(machine.state, .hidden(app: .wps))
+        XCTAssertEqual(machine.handle(.cellSelectionChanged(app: .wps)), .requestCellRead)
+    }
+
+    func testLeavingSupportedAppsHidesPreviewAndStopsReading() {
+        var machine = NavigationStateMachine()
+        let context = CellContext(text: "https://example.com/a.jpg", frame: nil, app: .excel, row: nil, column: nil)
+        _ = machine.handle(.cellSelectionChanged(app: .excel))
+        _ = machine.handle(.cellReadCompleted(context))
+
+        XCTAssertEqual(machine.handle(.activeApplicationChanged(nil)), .hidePreview)
+        XCTAssertEqual(machine.state, .inactive)
+    }
+
+    func testNonImageOrFailedCellReadHidesPreviewWithoutDisablingAutomation() {
+        var machine = NavigationStateMachine()
+        _ = machine.handle(.cellSelectionChanged(app: .wps))
+
+        XCTAssertEqual(machine.handle(.cellReadCompleted(nil)), .hidePreview)
+        XCTAssertEqual(machine.state, .hidden(app: .wps))
+        XCTAssertEqual(machine.handle(.cellSelectionChanged(app: .wps)), .requestCellRead)
+    }
 }
 
 private struct FakeActiveApplicationDetector: ActiveApplicationDetecting {

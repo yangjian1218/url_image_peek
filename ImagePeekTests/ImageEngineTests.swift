@@ -190,6 +190,20 @@ final class ImageEngineTests: XCTestCase {
         XCTAssertEqual(newValue, Data([0x02]))
     }
 
+    func testPreviewPipelineBuildsRemoteRequestFromCellURL() {
+        let pipeline = PreviewPipeline()
+        let context = CellContext(text: "https://example.com/image.jpg", frame: nil, app: .wps, row: nil, column: nil)
+
+        XCTAssertEqual(pipeline.request(for: context), .remote(URL(string: "https://example.com/image.jpg")!))
+    }
+
+    func testPreviewPipelineRejectsNonImageCellText() {
+        let pipeline = PreviewPipeline()
+        let context = CellContext(text: "not a URL", frame: nil, app: .excel, row: nil, column: nil)
+
+        XCTAssertNil(pipeline.request(for: context))
+    }
+
     func testDiskCacheReadsStoredDataAfterCacheIsRecreated() async {
         let directory = makeTemporaryCacheDirectory()
         let key = ImageCacheKey(

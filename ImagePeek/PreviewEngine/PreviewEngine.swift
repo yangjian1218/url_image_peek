@@ -39,6 +39,27 @@ enum PreviewZoom {
     }
 }
 
+enum PreviewShortcut: Equatable {
+    case escape
+    case space
+    case optionC
+    case optionR
+    case optionP
+    case letter(String)
+}
+
+enum PreviewShortcutPolicy {
+    static func canHandle(_ shortcut: PreviewShortcut, app: SpreadsheetApp?, hasPreview: Bool) -> Bool {
+        guard hasPreview, app == .wps || hasPreview, app == .excel else { return false }
+        switch shortcut {
+        case .escape, .space, .optionC, .optionR, .optionP:
+            return true
+        case .letter:
+            return false
+        }
+    }
+}
+
 final class PreviewPanelController {
     private let panel: NSPanel
     private let scrollView = NSScrollView()

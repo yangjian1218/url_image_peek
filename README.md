@@ -1,5 +1,7 @@
 # ImagePeek
 
+根据图片 URL 或本地图片地址，在表格附近浮窗预览图片。
+
 ImagePeek is a native macOS menu-bar application for instant image preview from spreadsheet cells. The validated product and safety baseline lives in [`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md).
 
 ## Current milestone

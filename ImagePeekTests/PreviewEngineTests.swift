@@ -59,7 +59,12 @@ final class PreviewEngineTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let store = SettingsStore(userDefaults: defaults)
-        let settings = ImagePeekSettings(automaticPreview: false, launchAtLogin: true, imageColumn: 3)
+        let settings = ImagePeekSettings(
+            automaticPreview: false,
+            launchAtLogin: true,
+            imageColumn: 3,
+            wpsClipboardFallback: false
+        )
 
         store.save(settings)
 

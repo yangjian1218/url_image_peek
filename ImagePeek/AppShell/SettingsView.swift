@@ -2,14 +2,23 @@ import SwiftUI
 
 struct SettingsView: View {
     let permissionManager: PermissionManager
+    private let settingsStore: SettingsStore
 
     @State private var isAccessibilityGranted = false
+    @State private var settings: ImagePeekSettings
+
+    init(permissionManager: PermissionManager, settingsStore: SettingsStore) {
+        self.permissionManager = permissionManager
+        self.settingsStore = settingsStore
+        _settings = State(initialValue: settingsStore.load())
+    }
 
     var body: some View {
         Form {
             Section("General") {
                 LabeledContent("App mode", value: "Menu bar")
                 LabeledContent("Supported in this phase", value: "WPS, Microsoft Excel")
+                Toggle("Automatic preview", isOn: $settings.automaticPreview)
             }
 
             Section("Accessibility") {
@@ -35,8 +44,9 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("First-round scope") {
-                Text("When Accessibility exposes a focused WPS or Excel cell containing an image URL or local image path, ImagePeek shows a non-activating preview beside the cell. WPS clipboard fallback remains opt-in and is never used by background polling.")
+            Section("Spreadsheet") {
+                Toggle("Use WPS clipboard fallback", isOn: $settings.wpsClipboardFallback)
+                Text("WPS does not expose the selected cell text through Accessibility on this Mac. ImagePeek observes WPS selection changes and temporarily copies the cell value, then restores your clipboard.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -45,6 +55,7 @@ struct SettingsView: View {
         .padding()
         .frame(minWidth: 520, minHeight: 360)
         .onAppear(perform: refreshPermissionStatus)
+        .onChange(of: settings) { settingsStore.save($0) }
     }
 
     private func refreshPermissionStatus() {

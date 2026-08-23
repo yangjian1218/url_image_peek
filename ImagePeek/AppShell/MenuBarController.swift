@@ -4,9 +4,12 @@ final class MenuBarController: NSObject {
     private let statusItem: NSStatusItem
     private let settingsWindowController: SettingsWindowController
 
-    init(permissionManager: PermissionManager) {
+    init(permissionManager: PermissionManager, settingsStore: SettingsStore) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        settingsWindowController = SettingsWindowController(permissionManager: permissionManager)
+        settingsWindowController = SettingsWindowController(
+            permissionManager: permissionManager,
+            settingsStore: settingsStore
+        )
         super.init()
         configureStatusItem()
     }

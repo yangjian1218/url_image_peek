@@ -200,6 +200,19 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(machine.state, .hidden(app: .wps))
         XCTAssertEqual(machine.handle(.cellSelectionChanged(app: .wps)), .requestCellRead)
     }
+
+    func testWPSSelectionTriggerAllowsMouseReleaseAndSpreadsheetNavigationKeys() {
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .mouseReleased, app: .wps))
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(123), app: .wps))
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(48), app: .wps))
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(36), app: .wps))
+    }
+
+    func testWPSSelectionTriggerRejectsOtherAppsAndOrdinaryTyping() {
+        XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .mouseReleased, app: .excel))
+        XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(0), app: .wps))
+        XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(49), app: .wps))
+    }
 }
 
 private struct FakeActiveApplicationDetector: ActiveApplicationDetecting {

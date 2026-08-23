@@ -3,6 +3,7 @@ import AppKit
 @main
 final class ImagePeekApp: NSObject, NSApplicationDelegate {
     private static let appDelegate = ImagePeekApp()
+    private let settingsStore = SettingsStore()
     private var menuBarController: MenuBarController?
     private var previewRuntimeController: PreviewRuntimeController?
 
@@ -14,8 +15,11 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        menuBarController = MenuBarController(permissionManager: PermissionManager())
-        previewRuntimeController = PreviewRuntimeController(settings: SettingsStore().load())
+        menuBarController = MenuBarController(
+            permissionManager: PermissionManager(),
+            settingsStore: settingsStore
+        )
+        previewRuntimeController = PreviewRuntimeController(settingsStore: settingsStore)
         previewRuntimeController?.start()
     }
 }
@@ -25,18 +29,22 @@ private final class PreviewRuntimeController {
     private let activeApplicationDetector: ActiveApplicationDetecting
     private let wpsAdapter: WPSAdapter
     private let excelAdapter: ExcelAdapter
-    private let coordinator: PreviewRuntimeCoordinator
     private let panelController: PreviewPanelController
     private let remoteImageLoader: RemoteImageLoader
-    private let automaticPreview: Bool
+    private let settingsStore: SettingsStore
 
     private var pollTimer: Timer?
+    private var selectionEventMonitor: Any?
     private var displayedContext: CellContext?
+    private var lastActiveApp: SpreadsheetApp?
+    private var wpsClipboardReadTask: Task<Void, Never>?
+    private var isReadingWPSClipboard = false
+    private var hasPendingWPSClipboardRead = false
     private var readGeneration = 0
     private var displayGeneration = 0
 
     init(
-        settings: ImagePeekSettings,
+        settingsStore: SettingsStore,
         activeApplicationDetector: ActiveApplicationDetecting = ActiveAppDetector(),
         wpsAdapter: WPSAdapter = WPSAdapter(),
         excelAdapter: ExcelAdapter = ExcelAdapter(),
@@ -46,12 +54,9 @@ private final class PreviewRuntimeController {
         self.activeApplicationDetector = activeApplicationDetector
         self.wpsAdapter = wpsAdapter
         self.excelAdapter = excelAdapter
-        self.coordinator = PreviewRuntimeCoordinator(
-            imageColumnFilter: ImageColumnFilter(column: settings.imageColumn)
-        )
         self.panelController = panelController
         self.remoteImageLoader = remoteImageLoader
-        self.automaticPreview = settings.automaticPreview
+        self.settingsStore = settingsStore
     }
 
     func start() {
@@ -59,13 +64,25 @@ private final class PreviewRuntimeController {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
             self?.poll()
         }
+        selectionEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .keyDown]) { [weak self] event in
+            Task { @MainActor [weak self] in
+                self?.handleSelectionEvent(event)
+            }
+        }
         poll()
     }
 
     private func poll() {
-        guard automaticPreview, let app = activeApplicationDetector.activeSpreadsheetApp() else {
+        guard settingsStore.load().automaticPreview,
+              let app = activeApplicationDetector.activeSpreadsheetApp() else {
+            lastActiveApp = nil
             apply(.hide)
             return
+        }
+
+        if lastActiveApp != app {
+            lastActiveApp = app
+            if app == .wps { scheduleWPSClipboardRead() }
         }
 
         readGeneration &+= 1
@@ -74,7 +91,8 @@ private final class PreviewRuntimeController {
             guard let self else { return }
             let context = await self.readCurrentCell(for: app)
             guard generation == self.readGeneration else { return }
-            self.apply(self.coordinator.decision(for: context))
+            guard app != .wps || context != nil else { return }
+            self.apply(self.decision(for: context))
         }
     }
 
@@ -85,6 +103,62 @@ private final class PreviewRuntimeController {
         case .excel:
             return await excelAdapter.currentCell()
         }
+    }
+
+    private func handleSelectionEvent(_ event: NSEvent) {
+        let input: WPSSelectionInput
+        switch event.type {
+        case .leftMouseUp:
+            input = .mouseReleased
+        case .keyDown:
+            input = .keyCode(event.keyCode)
+        default:
+            return
+        }
+
+        guard WPSSelectionTriggerPolicy.shouldRequestClipboardRead(
+            for: input,
+            app: activeApplicationDetector.activeSpreadsheetApp()
+        ) else { return }
+        scheduleWPSClipboardRead()
+    }
+
+    private func scheduleWPSClipboardRead() {
+        let settings = settingsStore.load()
+        guard settings.automaticPreview, settings.wpsClipboardFallback else { return }
+        hasPendingWPSClipboardRead = true
+        guard !isReadingWPSClipboard else { return }
+
+        wpsClipboardReadTask?.cancel()
+        wpsClipboardReadTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.readWPSClipboardAfterSelection()
+        }
+    }
+
+    private func readWPSClipboardAfterSelection() async {
+        guard hasPendingWPSClipboardRead,
+              !isReadingWPSClipboard,
+              activeApplicationDetector.activeSpreadsheetApp() == .wps else { return }
+        hasPendingWPSClipboardRead = false
+        isReadingWPSClipboard = true
+        let context = await wpsAdapter.currentCell()
+        isReadingWPSClipboard = false
+        wpsClipboardReadTask = nil
+
+        guard activeApplicationDetector.activeSpreadsheetApp() == .wps else { return }
+        apply(decision(for: context))
+
+        if hasPendingWPSClipboardRead {
+            scheduleWPSClipboardRead()
+        }
+    }
+
+    private func decision(for context: CellContext?) -> PreviewRuntimeDecision {
+        PreviewRuntimeCoordinator(
+            imageColumnFilter: ImageColumnFilter(column: settingsStore.load().imageColumn)
+        ).decision(for: context)
     }
 
     private func apply(_ decision: PreviewRuntimeDecision) {
@@ -110,6 +184,12 @@ private final class PreviewRuntimeController {
                     fallbackPoint: NSEvent.mouseLocation
                 )
             }
+        }
+    }
+
+    deinit {
+        if let selectionEventMonitor {
+            NSEvent.removeMonitor(selectionEventMonitor)
         }
     }
 

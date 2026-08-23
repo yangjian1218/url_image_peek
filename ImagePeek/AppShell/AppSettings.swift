@@ -4,6 +4,7 @@ struct ImagePeekSettings: Codable, Equatable {
     var automaticPreview = true
     var launchAtLogin = false
     var imageColumn: Int?
+    var wpsClipboardFallback = true
 }
 
 struct ImageColumnFilter: Equatable {

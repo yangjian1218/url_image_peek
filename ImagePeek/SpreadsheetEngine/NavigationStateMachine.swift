@@ -12,6 +12,37 @@ enum NavigationEffect: Equatable {
     case showPreview(CellContext)
 }
 
+enum WPSSelectionInput: Equatable {
+    case mouseReleased
+    case keyCode(UInt16)
+}
+
+enum WPSSelectionTriggerPolicy {
+    private static let navigationKeyCodes: Set<UInt16> = [
+        36,  // Return
+        48,  // Tab
+        76,  // Keypad Enter
+        115, // Home
+        116, // Page Up
+        119, // End
+        121, // Page Down
+        123, // Left Arrow
+        124, // Right Arrow
+        125, // Down Arrow
+        126, // Up Arrow
+    ]
+
+    static func shouldRequestClipboardRead(for input: WPSSelectionInput, app: SpreadsheetApp?) -> Bool {
+        guard app == .wps else { return false }
+        switch input {
+        case .mouseReleased:
+            return true
+        case let .keyCode(keyCode):
+            return navigationKeyCodes.contains(keyCode)
+        }
+    }
+}
+
 enum NavigationState: Equatable {
     case inactive
     case awaitingCellRead(app: SpreadsheetApp)

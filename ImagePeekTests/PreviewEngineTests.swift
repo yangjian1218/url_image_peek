@@ -37,6 +37,15 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(frame, CGRect(x: 578, y: 0, width: 200, height: 160))
     }
 
+    func testPinnedPreviewLayoutPlacesPanelAtTopRightWithScreenInset() {
+        let frame = PinnedPreviewLayout.frame(
+            panelSize: CGSize(width: 200, height: 160),
+            visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 600)
+        )
+
+        XCTAssertEqual(frame, CGRect(x: 576, y: 416, width: 200, height: 160))
+    }
+
     func testPreviewZoomClampsToSafeRange() {
         XCTAssertEqual(PreviewZoom.clamped(0.25), 0.5)
         XCTAssertEqual(PreviewZoom.clamped(2), 2)

@@ -32,6 +32,23 @@ enum PreviewLayout {
     }
 }
 
+enum PinnedPreviewLayout {
+    static let screenInset: CGFloat = 24
+
+    static func frame(
+        panelSize: CGSize,
+        visibleFrame: CGRect,
+        inset: CGFloat = screenInset
+    ) -> CGRect {
+        CGRect(
+            x: visibleFrame.maxX - panelSize.width - inset,
+            y: visibleFrame.maxY - panelSize.height - inset,
+            width: panelSize.width,
+            height: panelSize.height
+        )
+    }
+}
+
 enum PreviewPanelLayout {
     static let maximumSize = CGSize(width: 360, height: 480)
     static let defaultSize = CGSize(width: 320, height: 260)
@@ -164,6 +181,25 @@ final class PreviewPanelController {
                 panelSize: panelSize,
                 visibleFrame: visibleFrame
             ),
+            display: true
+        )
+        applyZoom(1)
+        panel.orderFrontRegardless()
+    }
+
+    func showPinned(image: NSImage, screen: NSScreen? = nil) {
+        let targetScreen = screen
+            ?? NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
+            ?? NSScreen.main
+        let visibleFrame = targetScreen?.visibleFrame ?? NSScreen.screens.first?.visibleFrame ?? .zero
+        isExpanded = false
+        lastCellFrame = nil
+        lastFallbackPoint = nil
+        panelSize = PreviewPanelLayout.contentSize(for: image.size)
+        imageView.image = image
+        panel.setContentSize(panelSize)
+        panel.setFrame(
+            PinnedPreviewLayout.frame(panelSize: panelSize, visibleFrame: visibleFrame),
             display: true
         )
         applyZoom(1)

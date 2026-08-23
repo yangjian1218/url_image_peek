@@ -274,8 +274,7 @@ private final class PreviewRuntimeController {
 
         pinnedPreview?.controller.hide()
         let controller = PreviewPanelController()
-        let point = CGPoint(x: NSEvent.mouseLocation.x + 28, y: NSEvent.mouseLocation.y - 28)
-        controller.show(image: image, cellFrame: nil, fallbackPoint: point)
+        controller.showPinned(image: image)
         pinnedPreview = (controller, context)
     }
 

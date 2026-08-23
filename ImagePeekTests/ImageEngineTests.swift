@@ -204,6 +204,38 @@ final class ImageEngineTests: XCTestCase {
         XCTAssertNil(pipeline.request(for: context))
     }
 
+    func testRuntimeDecisionLoadsOnlyValidImageSourceInAllowedColumn() {
+        let coordinator = PreviewRuntimeCoordinator(imageColumnFilter: ImageColumnFilter(column: 3))
+        let context = CellContext(
+            text: "https://example.com/image.jpg",
+            frame: CGRect(x: 10, y: 20, width: 30, height: 40),
+            app: .wps,
+            row: 7,
+            column: 3
+        )
+
+        XCTAssertEqual(
+            coordinator.decision(for: context),
+            .load(.remote(URL(string: "https://example.com/image.jpg")!), context)
+        )
+    }
+
+    func testRuntimeDecisionHidesForMissingInvalidOrFilteredCell() {
+        let coordinator = PreviewRuntimeCoordinator(imageColumnFilter: ImageColumnFilter(column: 3))
+        let invalid = CellContext(text: "not a URL", frame: nil, app: .excel, row: 1, column: 3)
+        let filtered = CellContext(
+            text: "https://example.com/image.jpg",
+            frame: nil,
+            app: .excel,
+            row: 1,
+            column: 2
+        )
+
+        XCTAssertEqual(coordinator.decision(for: nil), .hide)
+        XCTAssertEqual(coordinator.decision(for: invalid), .hide)
+        XCTAssertEqual(coordinator.decision(for: filtered), .hide)
+    }
+
     func testDiskCacheReadsStoredDataAfterCacheIsRecreated() async {
         let directory = makeTemporaryCacheDirectory()
         let key = ImageCacheKey(

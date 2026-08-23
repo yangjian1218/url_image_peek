@@ -9,6 +9,11 @@ enum PreviewRequest: Equatable {
     case local(URL)
 }
 
+enum PreviewRuntimeDecision: Equatable {
+    case hide
+    case load(PreviewRequest, CellContext)
+}
+
 struct PreviewPipeline {
     private let resolver: ImageSourceResolver
     private let optimizer: CDNOptimizer
@@ -24,5 +29,27 @@ struct PreviewPipeline {
         case let .local(url): return .local(url)
         case nil: return nil
         }
+    }
+}
+
+struct PreviewRuntimeCoordinator {
+    private let pipeline: PreviewPipeline
+    private let imageColumnFilter: ImageColumnFilter
+
+    init(
+        pipeline: PreviewPipeline = PreviewPipeline(),
+        imageColumnFilter: ImageColumnFilter = .all
+    ) {
+        self.pipeline = pipeline
+        self.imageColumnFilter = imageColumnFilter
+    }
+
+    func decision(for context: CellContext?) -> PreviewRuntimeDecision {
+        guard let context,
+              imageColumnFilter.includes(column: context.column),
+              let request = pipeline.request(for: context) else {
+            return .hide
+        }
+        return .load(request, context)
     }
 }

@@ -90,6 +90,16 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertFalse(PreviewShortcutPolicy.canHandle(.letter("p"), app: .wps, hasPreview: true))
     }
 
+    func testShortcutResolverRecognizesOnlyDocumentedConditionalShortcuts() {
+        XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 49, modifiers: []), .space)
+        XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 53, modifiers: []), .escape)
+        XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 8, modifiers: .option), .optionC)
+        XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 31, modifiers: .option), .optionO)
+        XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 15, modifiers: .option), .optionR)
+        XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 35, modifiers: .option), .optionP)
+        XCTAssertNil(PreviewShortcutResolver.shortcut(keyCode: 35, modifiers: []))
+    }
+
     func testSettingsStorePersistsAndRestoresSettings() {
         let suiteName = "ImagePeekTests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

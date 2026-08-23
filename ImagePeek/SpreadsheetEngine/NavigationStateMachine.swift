@@ -15,6 +15,7 @@ enum NavigationEffect: Equatable {
 enum WPSSelectionInput: Equatable {
     case mouseReleased
     case keyCode(UInt16)
+    case keyReleased(UInt16)
 }
 
 enum WPSSelectionTriggerPolicy {
@@ -37,7 +38,9 @@ enum WPSSelectionTriggerPolicy {
         switch input {
         case .mouseReleased:
             return true
-        case let .keyCode(keyCode):
+        case .keyCode:
+            return false
+        case let .keyReleased(keyCode):
             return navigationKeyCodes.contains(keyCode)
         }
     }

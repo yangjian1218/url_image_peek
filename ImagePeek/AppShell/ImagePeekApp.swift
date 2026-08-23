@@ -35,7 +35,11 @@ private final class PreviewRuntimeController {
 
     private var pollTimer: Timer?
     private var selectionEventMonitor: Any?
+    private var keyboardShortcutMonitor: KeyboardShortcutMonitor?
     private var displayedContext: CellContext?
+    private var displayedRequest: PreviewRequest?
+    private var displayedImage: NSImage?
+    private var pinnedPreview: (controller: PreviewPanelController, context: CellContext)?
     private var latestSelectionPoint: CGPoint?
     private var lastActiveApp: SpreadsheetApp?
     private var wpsClipboardReadTask: Task<Void, Never>?
@@ -65,11 +69,25 @@ private final class PreviewRuntimeController {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
             self?.poll()
         }
-        selectionEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .keyDown]) { [weak self] event in
+        selectionEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .keyUp]) { [weak self] event in
             Task { @MainActor [weak self] in
                 self?.handleSelectionEvent(event)
             }
         }
+        keyboardShortcutMonitor = KeyboardShortcutMonitor(
+            shouldHandle: { [weak self] shortcut in
+                guard let self else { return false }
+                return PreviewShortcutPolicy.canHandle(
+                    shortcut,
+                    app: self.activeApplicationDetector.activeSpreadsheetApp(),
+                    hasPreview: self.displayedImage != nil
+                )
+            },
+            handle: { [weak self] shortcut in
+                self?.handle(shortcut)
+            }
+        )
+        keyboardShortcutMonitor?.start()
         poll()
     }
 
@@ -112,8 +130,8 @@ private final class PreviewRuntimeController {
         case .leftMouseUp:
             input = .mouseReleased
             latestSelectionPoint = NSEvent.mouseLocation
-        case .keyDown:
-            input = .keyCode(event.keyCode)
+        case .keyUp:
+            input = .keyReleased(event.keyCode)
         default:
             return
         }
@@ -133,7 +151,7 @@ private final class PreviewRuntimeController {
 
         wpsClipboardReadTask?.cancel()
         wpsClipboardReadTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 120_000_000)
+            try? await Task.sleep(nanoseconds: 40_000_000)
             guard !Task.isCancelled else { return }
             await self?.readWPSClipboardAfterSelection()
         }
@@ -168,6 +186,8 @@ private final class PreviewRuntimeController {
         case .hide:
             guard displayedContext != nil else { return }
             displayedContext = nil
+            displayedRequest = nil
+            displayedImage = nil
             displayGeneration &+= 1
             panelController.hide()
             Task { await remoteImageLoader.cancelCurrentLoad() }
@@ -175,11 +195,14 @@ private final class PreviewRuntimeController {
         case let .load(request, context):
             guard displayedContext != context else { return }
             displayedContext = context
+            displayedRequest = request
+            displayedImage = nil
             displayGeneration &+= 1
             let generation = displayGeneration
             Task { [weak self] in
                 guard let self, let image = await self.image(for: request) else { return }
                 guard generation == self.displayGeneration, self.displayedContext == context else { return }
+                self.displayedImage = image
                 self.panelController.show(
                     image: image,
                     cellFrame: context.frame,
@@ -195,6 +218,67 @@ private final class PreviewRuntimeController {
         }
     }
 
+    private func handle(_ shortcut: PreviewShortcut) {
+        guard PreviewShortcutPolicy.canHandle(
+            shortcut,
+            app: activeApplicationDetector.activeSpreadsheetApp(),
+            hasPreview: displayedImage != nil
+        ) else { return }
+
+        switch shortcut {
+        case .escape:
+            apply(.hide)
+        case .space:
+            panelController.toggleExpandedPreview()
+        case .optionC:
+            copyPreviewImage()
+        case .optionO:
+            openPreviewSource()
+        case .optionR:
+            revealLocalPreviewSource()
+        case .optionP:
+            togglePinnedPreview()
+        case .letter:
+            break
+        }
+    }
+
+    private func copyPreviewImage() {
+        guard let image = displayedImage else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects([image])
+    }
+
+    private func openPreviewSource() {
+        guard let displayedRequest else { return }
+        let url: URL
+        switch displayedRequest {
+        case let .remote(remoteURL), let .local(remoteURL):
+            url = remoteURL
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func revealLocalPreviewSource() {
+        guard case let .local(url) = displayedRequest else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func togglePinnedPreview() {
+        guard let image = displayedImage, let context = displayedContext else { return }
+        if pinnedPreview?.context == context {
+            pinnedPreview?.controller.hide()
+            pinnedPreview = nil
+            return
+        }
+
+        pinnedPreview?.controller.hide()
+        let controller = PreviewPanelController()
+        let point = CGPoint(x: NSEvent.mouseLocation.x + 28, y: NSEvent.mouseLocation.y - 28)
+        controller.show(image: image, cellFrame: nil, fallbackPoint: point)
+        pinnedPreview = (controller, context)
+    }
+
     private func image(for request: PreviewRequest) async -> NSImage? {
         switch request {
         case let .local(url):
@@ -207,5 +291,77 @@ private final class PreviewRuntimeController {
                 return nil
             }
         }
+    }
+}
+
+private final class KeyboardShortcutMonitor {
+    private let shouldHandle: (PreviewShortcut) -> Bool
+    private let handle: (PreviewShortcut) -> Void
+    private var eventTap: CFMachPort?
+    private var runLoopSource: CFRunLoopSource?
+
+    init(
+        shouldHandle: @escaping (PreviewShortcut) -> Bool,
+        handle: @escaping (PreviewShortcut) -> Void
+    ) {
+        self.shouldHandle = shouldHandle
+        self.handle = handle
+    }
+
+    func start() {
+        guard eventTap == nil else { return }
+        guard CGPreflightListenEventAccess() else {
+            CGRequestListenEventAccess()
+            return
+        }
+        let eventMask = CGEventMask(1) << CGEventType.keyDown.rawValue
+        let reference = Unmanaged.passUnretained(self).toOpaque()
+        guard let eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: eventMask,
+            callback: Self.callback,
+            userInfo: reference
+        ) else {
+            return
+        }
+
+        self.eventTap = eventTap
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
+        runLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+    }
+
+    deinit {
+        if let runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        }
+    }
+
+    private static let callback: CGEventTapCallBack = { _, type, event, userInfo in
+        guard let userInfo else { return Unmanaged.passUnretained(event) }
+        let monitor = Unmanaged<KeyboardShortcutMonitor>.fromOpaque(userInfo).takeUnretainedValue()
+
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput,
+           let eventTap = monitor.eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: true)
+            return Unmanaged.passUnretained(event)
+        }
+
+        guard type == .keyDown,
+              let shortcut = PreviewShortcutResolver.shortcut(
+                  keyCode: UInt16(event.getIntegerValueField(.keyboardEventKeycode)),
+                  modifiers: NSEvent.ModifierFlags(rawValue: UInt(event.flags.rawValue))
+              ),
+              monitor.shouldHandle(shortcut) else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        DispatchQueue.main.async {
+            monitor.handle(shortcut)
+        }
+        return nil
     }
 }

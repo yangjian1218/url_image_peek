@@ -41,6 +41,16 @@ enum PreviewPanelLayout {
         let scale = min(maximumSize.width / imageSize.width, maximumSize.height / imageSize.height)
         return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
     }
+
+    static func expandedContentSize(for imageSize: CGSize, visibleFrame: CGRect) -> CGSize {
+        guard imageSize.width > 0, imageSize.height > 0 else { return defaultSize }
+        let maximumSize = CGSize(
+            width: max(1, visibleFrame.width - 48),
+            height: max(1, visibleFrame.height - 48)
+        )
+        let scale = min(maximumSize.width / imageSize.width, maximumSize.height / imageSize.height)
+        return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+    }
 }
 
 enum PreviewZoom {
@@ -65,6 +75,7 @@ enum PreviewShortcut: Equatable {
     case escape
     case space
     case optionC
+    case optionO
     case optionR
     case optionP
     case letter(String)
@@ -74,10 +85,32 @@ enum PreviewShortcutPolicy {
     static func canHandle(_ shortcut: PreviewShortcut, app: SpreadsheetApp?, hasPreview: Bool) -> Bool {
         guard hasPreview, let app, app == .wps || app == .excel else { return false }
         switch shortcut {
-        case .escape, .space, .optionC, .optionR, .optionP:
+        case .escape, .space, .optionC, .optionO, .optionR, .optionP:
             return true
         case .letter:
             return false
+        }
+    }
+}
+
+enum PreviewShortcutResolver {
+    static func shortcut(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> PreviewShortcut? {
+        let significantModifiers = modifiers.intersection([.command, .control, .option, .function])
+        if significantModifiers.contains(.option) {
+            switch keyCode {
+            case 8: return .optionC
+            case 31: return .optionO
+            case 15: return .optionR
+            case 35: return .optionP
+            default: return nil
+            }
+        }
+
+        guard significantModifiers.isEmpty else { return nil }
+        switch keyCode {
+        case 49: return .space
+        case 53: return .escape
+        default: return nil
         }
     }
 }
@@ -87,6 +120,9 @@ final class PreviewPanelController {
     private let scrollView = NSScrollView()
     private let imageView = ZoomableImageView()
     private var panelSize = PreviewPanelLayout.defaultSize
+    private var isExpanded = false
+    private var lastCellFrame: CGRect?
+    private var lastFallbackPoint: CGPoint?
 
     init() {
         panel = NSPanel(
@@ -115,6 +151,9 @@ final class PreviewPanelController {
 
     func show(image: NSImage, cellFrame: CGRect?, fallbackPoint: CGPoint?, screen: NSScreen? = NSScreen.main) {
         let visibleFrame = screen?.visibleFrame ?? NSScreen.screens.first?.visibleFrame ?? .zero
+        isExpanded = false
+        lastCellFrame = cellFrame
+        lastFallbackPoint = fallbackPoint
         panelSize = PreviewPanelLayout.contentSize(for: image.size)
         imageView.image = image
         panel.setContentSize(panelSize)
@@ -122,6 +161,27 @@ final class PreviewPanelController {
             PreviewLayout.frame(
                 cellFrame: cellFrame,
                 fallbackPoint: fallbackPoint,
+                panelSize: panelSize,
+                visibleFrame: visibleFrame
+            ),
+            display: true
+        )
+        applyZoom(1)
+        panel.orderFrontRegardless()
+    }
+
+    func toggleExpandedPreview(screen: NSScreen? = NSScreen.main) {
+        guard let image = imageView.image else { return }
+        let visibleFrame = screen?.visibleFrame ?? NSScreen.screens.first?.visibleFrame ?? .zero
+        isExpanded.toggle()
+        panelSize = isExpanded
+            ? PreviewPanelLayout.expandedContentSize(for: image.size, visibleFrame: visibleFrame)
+            : PreviewPanelLayout.contentSize(for: image.size)
+        panel.setContentSize(panelSize)
+        panel.setFrame(
+            PreviewLayout.frame(
+                cellFrame: lastCellFrame,
+                fallbackPoint: lastFallbackPoint,
                 panelSize: panelSize,
                 visibleFrame: visibleFrame
             ),

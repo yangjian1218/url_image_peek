@@ -221,11 +221,14 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(machine.handle(.cellSelectionChanged(app: .wps)), .requestCellRead)
     }
 
-    func testWPSSelectionTriggerAllowsMouseReleaseAndSpreadsheetNavigationKeys() {
+    func testWPSSelectionTriggerAllowsMouseReleaseButNotNavigationKeyDown() {
         XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .mouseReleased, app: .wps))
-        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(123), app: .wps))
-        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(48), app: .wps))
-        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(36), app: .wps))
+        XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(123), app: .wps))
+        XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(48), app: .wps))
+        XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(36), app: .wps))
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyReleased(123), app: .wps))
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyReleased(48), app: .wps))
+        XCTAssertTrue(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyReleased(36), app: .wps))
     }
 
     func testWPSSelectionTriggerRejectsOtherAppsAndOrdinaryTyping() {

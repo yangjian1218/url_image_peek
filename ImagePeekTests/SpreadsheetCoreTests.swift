@@ -86,6 +86,26 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(fallback.callCount, 1)
     }
 
+    func testWPSClipboardFallbackRejectsLargeAccessibilityGroupFrame() async {
+        let fallback = ClipboardFallbackSpy(result: "https://example.com/image.jpg")
+        let adapter = WPSAdapter(
+            accessibilityClient: FakeAccessibilityClient(
+                isTrusted: true,
+                snapshot: AccessibilityCellSnapshot(
+                    text: nil,
+                    frame: CGRect(x: 0, y: 0, width: 1440, height: 900)
+                )
+            ),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .wps),
+            clipboardFallback: fallback
+        )
+
+        let cell = await adapter.currentCell()
+
+        XCTAssertEqual(cell?.text, "https://example.com/image.jpg")
+        XCTAssertNil(cell?.frame)
+    }
+
     func testWPSDoesNotReadOrFallbackWhenInactiveOrUntrusted() async {
         let fallback = ClipboardFallbackSpy(result: "https://example.com/image.jpg")
         let adapter = WPSAdapter(

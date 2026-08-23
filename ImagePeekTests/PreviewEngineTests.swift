@@ -43,6 +43,28 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(PreviewZoom.clamped(6), 5)
     }
 
+    func testPreviewImageLayoutFitsWholeImageAtDefaultZoom() {
+        let size = PreviewImageLayout.displaySize(
+            imageSize: CGSize(width: 1200, height: 1800),
+            availableSize: CGSize(width: 320, height: 260),
+            zoom: 1
+        )
+
+        XCTAssertEqual(size.width, 173.33333333333334, accuracy: 0.0001)
+        XCTAssertEqual(size.height, 260, accuracy: 0.0001)
+    }
+
+    func testPreviewImageLayoutExpandsFromFittedSizeWhenZoomed() {
+        let size = PreviewImageLayout.displaySize(
+            imageSize: CGSize(width: 1200, height: 1800),
+            availableSize: CGSize(width: 320, height: 260),
+            zoom: 2
+        )
+
+        XCTAssertEqual(size.width, 346.6666666666667, accuracy: 0.0001)
+        XCTAssertEqual(size.height, 520, accuracy: 0.0001)
+    }
+
     func testShortcutPolicyAllowsOnlyPreviewContextInSupportedSpreadsheet() {
         XCTAssertTrue(PreviewShortcutPolicy.canHandle(.space, app: .wps, hasPreview: true))
         XCTAssertTrue(PreviewShortcutPolicy.canHandle(.escape, app: .excel, hasPreview: true))

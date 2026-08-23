@@ -39,6 +39,15 @@ enum PreviewZoom {
     }
 }
 
+enum PreviewImageLayout {
+    static func displaySize(imageSize: CGSize, availableSize: CGSize, zoom: CGFloat) -> CGSize {
+        guard imageSize.width > 0, imageSize.height > 0 else { return availableSize }
+        let fitScale = min(availableSize.width / imageSize.width, availableSize.height / imageSize.height)
+        let scale = fitScale * PreviewZoom.clamped(zoom)
+        return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+    }
+}
+
 enum PreviewShortcut: Equatable {
     case escape
     case space
@@ -83,7 +92,7 @@ final class PreviewPanelController {
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.drawsBackground = false
-        imageView.imageScaling = .scaleNone
+        imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.imageAlignment = .alignCenter
         imageView.onZoom = { [weak self] scale in self?.applyZoom(scale) }
         scrollView.documentView = imageView
@@ -113,7 +122,14 @@ final class PreviewPanelController {
     private func applyZoom(_ scale: CGFloat) {
         imageView.zoomScale = PreviewZoom.clamped(scale)
         let imageSize = imageView.image?.size ?? panelSize
-        imageView.frame = CGRect(origin: .zero, size: CGSize(width: imageSize.width * imageView.zoomScale, height: imageSize.height * imageView.zoomScale))
+        imageView.frame = CGRect(
+            origin: .zero,
+            size: PreviewImageLayout.displaySize(
+                imageSize: imageSize,
+                availableSize: panelSize,
+                zoom: imageView.zoomScale
+            )
+        )
     }
 }
 

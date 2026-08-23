@@ -176,7 +176,13 @@ struct WPSAdapter: SpreadsheetAdapter {
         guard let fallbackText = normalized(await clipboardFallback.readCurrentCellText()) else {
             return nil
         }
-        return CellContext(text: fallbackText, frame: snapshot?.frame, app: .wps, row: nil, column: nil)
+        return CellContext(
+            text: fallbackText,
+            frame: trustedCellFrame(snapshot?.frame),
+            app: .wps,
+            row: nil,
+            column: nil
+        )
     }
 
     /// Reads only Accessibility data. The preview timer uses this path so it never
@@ -185,7 +191,24 @@ struct WPSAdapter: SpreadsheetAdapter {
         guard isAvailable() else { return nil }
         let snapshot = accessibilityClient.currentCellSnapshot()
         guard let text = normalized(snapshot?.text) else { return nil }
-        return CellContext(text: text, frame: snapshot?.frame, app: .wps, row: nil, column: nil)
+        return CellContext(
+            text: text,
+            frame: trustedCellFrame(snapshot?.frame),
+            app: .wps,
+            row: nil,
+            column: nil
+        )
+    }
+
+    private func trustedCellFrame(_ frame: CGRect?) -> CGRect? {
+        guard let frame,
+              frame.width > 0,
+              frame.height > 0,
+              frame.width <= 500,
+              frame.height <= 160 else {
+            return nil
+        }
+        return frame
     }
 
     private func normalized(_ text: String?) -> String? {

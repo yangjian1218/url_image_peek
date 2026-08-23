@@ -36,6 +36,7 @@ private final class PreviewRuntimeController {
     private var pollTimer: Timer?
     private var selectionEventMonitor: Any?
     private var displayedContext: CellContext?
+    private var latestSelectionPoint: CGPoint?
     private var lastActiveApp: SpreadsheetApp?
     private var wpsClipboardReadTask: Task<Void, Never>?
     private var isReadingWPSClipboard = false
@@ -110,6 +111,7 @@ private final class PreviewRuntimeController {
         switch event.type {
         case .leftMouseUp:
             input = .mouseReleased
+            latestSelectionPoint = NSEvent.mouseLocation
         case .keyDown:
             input = .keyCode(event.keyCode)
         default:
@@ -181,7 +183,7 @@ private final class PreviewRuntimeController {
                 self.panelController.show(
                     image: image,
                     cellFrame: context.frame,
-                    fallbackPoint: NSEvent.mouseLocation
+                    fallbackPoint: self.latestSelectionPoint ?? NSEvent.mouseLocation
                 )
             }
         }

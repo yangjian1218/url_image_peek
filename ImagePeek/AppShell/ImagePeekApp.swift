@@ -47,6 +47,8 @@ private final class PreviewRuntimeController {
     private var hasPendingWPSClipboardRead = false
     private var readGeneration = 0
     private var displayGeneration = 0
+    private var isReadingCurrentCell = false
+    private var hasPendingCellRead = false
 
     init(
         settingsStore: SettingsStore,
@@ -94,6 +96,8 @@ private final class PreviewRuntimeController {
     private func poll() {
         guard settingsStore.load().automaticPreview,
               let app = activeApplicationDetector.activeSpreadsheetApp() else {
+            readGeneration &+= 1
+            hasPendingCellRead = false
             lastActiveApp = nil
             apply(.hide)
             return
@@ -104,14 +108,33 @@ private final class PreviewRuntimeController {
             if app == .wps { scheduleWPSClipboardRead() }
         }
 
+        requestCurrentCellRead(for: app)
+    }
+
+    private func requestCurrentCellRead(for app: SpreadsheetApp) {
         readGeneration &+= 1
+        guard !isReadingCurrentCell else {
+            hasPendingCellRead = true
+            return
+        }
+
         let generation = readGeneration
+        isReadingCurrentCell = true
         Task { [weak self] in
             guard let self else { return }
             let context = await self.readCurrentCell(for: app)
-            guard generation == self.readGeneration else { return }
-            guard app != .wps || context != nil else { return }
-            self.apply(self.decision(for: context))
+            self.isReadingCurrentCell = false
+
+            if generation == self.readGeneration,
+               self.activeApplicationDetector.activeSpreadsheetApp() == app,
+               app != .wps || context != nil {
+                self.apply(self.decision(for: context))
+            }
+
+            if self.hasPendingCellRead {
+                self.hasPendingCellRead = false
+                self.poll()
+            }
         }
     }
 
@@ -136,11 +159,13 @@ private final class PreviewRuntimeController {
             return
         }
 
-        guard WPSSelectionTriggerPolicy.shouldRequestClipboardRead(
-            for: input,
-            app: activeApplicationDetector.activeSpreadsheetApp()
-        ) else { return }
-        scheduleWPSClipboardRead()
+        let activeApp = activeApplicationDetector.activeSpreadsheetApp()
+        if WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: input, app: activeApp) {
+            scheduleWPSClipboardRead()
+        } else if SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: input, app: activeApp),
+                  let activeApp {
+            requestCurrentCellRead(for: activeApp)
+        }
     }
 
     private func scheduleWPSClipboardRead() {

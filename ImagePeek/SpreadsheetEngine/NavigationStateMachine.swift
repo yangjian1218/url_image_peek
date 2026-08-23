@@ -41,7 +41,25 @@ enum WPSSelectionTriggerPolicy {
         case .keyCode:
             return false
         case let .keyReleased(keyCode):
-            return navigationKeyCodes.contains(keyCode)
+            return isNavigationKey(keyCode)
+        }
+    }
+
+    static func isNavigationKey(_ keyCode: UInt16) -> Bool {
+        navigationKeyCodes.contains(keyCode)
+    }
+}
+
+enum SpreadsheetSelectionTriggerPolicy {
+    static func shouldRequestRead(for input: WPSSelectionInput, app: SpreadsheetApp?) -> Bool {
+        guard app == .excel else { return false }
+        switch input {
+        case .mouseReleased:
+            return true
+        case .keyCode:
+            return false
+        case let .keyReleased(keyCode):
+            return WPSSelectionTriggerPolicy.isNavigationKey(keyCode)
         }
     }
 }

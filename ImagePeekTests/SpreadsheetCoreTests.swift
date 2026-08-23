@@ -256,6 +256,13 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(0), app: .wps))
         XCTAssertFalse(WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: .keyCode(49), app: .wps))
     }
+
+    func testSpreadsheetSelectionTriggerRefreshesExcelAfterMouseAndNavigationKeyRelease() {
+        XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .mouseReleased, app: .excel))
+        XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyReleased(123), app: .excel))
+        XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyReleased(126), app: .excel))
+        XCTAssertFalse(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyCode(123), app: .excel))
+    }
 }
 
 private struct FakeActiveApplicationDetector: ActiveApplicationDetecting {

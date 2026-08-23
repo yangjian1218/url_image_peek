@@ -26,7 +26,7 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(frame.origin.y, 130)
     }
 
-    func testPreviewLayoutKeepsFallbackPanelWithinVisibleScreen() {
+    func testPreviewLayoutPlacesFallbackPanelToLeftWhenRightSideOverflows() {
         let frame = PreviewLayout.frame(
             cellFrame: nil,
             fallbackPoint: CGPoint(x: 790, y: 10),
@@ -34,7 +34,7 @@ final class PreviewEngineTests: XCTestCase {
             visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 600)
         )
 
-        XCTAssertEqual(frame, CGRect(x: 600, y: 0, width: 200, height: 160))
+        XCTAssertEqual(frame, CGRect(x: 578, y: 0, width: 200, height: 160))
     }
 
     func testPreviewZoomClampsToSafeRange() {
@@ -63,6 +63,20 @@ final class PreviewEngineTests: XCTestCase {
 
         XCTAssertEqual(size.width, 346.6666666666667, accuracy: 0.0001)
         XCTAssertEqual(size.height, 520, accuracy: 0.0001)
+    }
+
+    func testPreviewPanelLayoutUsesPortraitAspectWithoutEmptySideArea() {
+        XCTAssertEqual(
+            PreviewPanelLayout.contentSize(for: CGSize(width: 1200, height: 1800)),
+            CGSize(width: 320, height: 480)
+        )
+    }
+
+    func testPreviewPanelLayoutUsesLandscapeAspectWithoutEmptySideArea() {
+        XCTAssertEqual(
+            PreviewPanelLayout.contentSize(for: CGSize(width: 1800, height: 1200)),
+            CGSize(width: 360, height: 240)
+        )
     }
 
     func testShortcutPolicyAllowsOnlyPreviewContextInSupportedSpreadsheet() {

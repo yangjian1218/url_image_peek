@@ -16,7 +16,9 @@ enum PreviewLayout {
             let leftOrigin = CGPoint(x: cellFrame.minX - gap - panelSize.width, y: rightOrigin.y)
             origin = rightOrigin.x + panelSize.width <= visibleFrame.maxX ? rightOrigin : leftOrigin
         } else if let fallbackPoint {
-            origin = CGPoint(x: fallbackPoint.x + gap, y: fallbackPoint.y - panelSize.height / 2)
+            let rightOrigin = CGPoint(x: fallbackPoint.x + gap, y: fallbackPoint.y - panelSize.height / 2)
+            let leftOrigin = CGPoint(x: fallbackPoint.x - gap - panelSize.width, y: rightOrigin.y)
+            origin = rightOrigin.x + panelSize.width <= visibleFrame.maxX ? rightOrigin : leftOrigin
         } else {
             origin = CGPoint(x: visibleFrame.midX - panelSize.width / 2, y: visibleFrame.midY - panelSize.height / 2)
         }
@@ -27,6 +29,17 @@ enum PreviewLayout {
             width: panelSize.width,
             height: panelSize.height
         )
+    }
+}
+
+enum PreviewPanelLayout {
+    static let maximumSize = CGSize(width: 360, height: 480)
+    static let defaultSize = CGSize(width: 320, height: 260)
+
+    static func contentSize(for imageSize: CGSize) -> CGSize {
+        guard imageSize.width > 0, imageSize.height > 0 else { return defaultSize }
+        let scale = min(maximumSize.width / imageSize.width, maximumSize.height / imageSize.height)
+        return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
     }
 }
 
@@ -73,7 +86,7 @@ final class PreviewPanelController {
     private let panel: NSPanel
     private let scrollView = NSScrollView()
     private let imageView = ZoomableImageView()
-    private let panelSize = CGSize(width: 320, height: 260)
+    private var panelSize = PreviewPanelLayout.defaultSize
 
     init() {
         panel = NSPanel(
@@ -86,7 +99,8 @@ final class PreviewPanelController {
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.backgroundColor = .windowBackgroundColor
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
         panel.hasShadow = true
 
         scrollView.hasVerticalScroller = true
@@ -101,6 +115,9 @@ final class PreviewPanelController {
 
     func show(image: NSImage, cellFrame: CGRect?, fallbackPoint: CGPoint?, screen: NSScreen? = NSScreen.main) {
         let visibleFrame = screen?.visibleFrame ?? NSScreen.screens.first?.visibleFrame ?? .zero
+        panelSize = PreviewPanelLayout.contentSize(for: image.size)
+        imageView.image = image
+        panel.setContentSize(panelSize)
         panel.setFrame(
             PreviewLayout.frame(
                 cellFrame: cellFrame,
@@ -110,7 +127,6 @@ final class PreviewPanelController {
             ),
             display: true
         )
-        imageView.image = image
         applyZoom(1)
         panel.orderFrontRegardless()
     }

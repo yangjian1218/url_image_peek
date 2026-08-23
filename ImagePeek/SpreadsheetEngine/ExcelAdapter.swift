@@ -1,9 +1,32 @@
+import AppKit
+
 protocol ExcelCellTextFallback {
     func readCurrentCellText() async -> String?
 }
 
-struct UnavailableExcelCellTextFallback: ExcelCellTextFallback {
-    func readCurrentCellText() async -> String? { nil }
+struct SystemExcelCellTextFallback: ExcelCellTextFallback {
+    func readCurrentCellText() async -> String? {
+        guard NSWorkspace.shared.frontmostApplication?.bundleIdentifier?.lowercased() == "com.microsoft.excel" else {
+            return nil
+        }
+
+        return await Task.detached(priority: .userInitiated) {
+            var error: NSDictionary?
+            let result = NSAppleScript(source: Self.source)?.executeAndReturnError(&error)
+            guard error == nil else { return nil }
+            return result?.stringValue
+        }.value
+    }
+
+    private static let source = """
+    tell application id "com.microsoft.Excel"
+        try
+            return (value of active cell) as text
+        on error
+            return ""
+        end try
+    end tell
+    """
 }
 
 struct ExcelAdapter: SpreadsheetAdapter {
@@ -22,7 +45,7 @@ struct ExcelAdapter: SpreadsheetAdapter {
     init(
         accessibilityClient: AccessibilityClient = SystemAccessibilityClient(),
         activeApplicationDetector: ActiveApplicationDetecting = ActiveAppDetector(),
-        fallback: ExcelCellTextFallback = UnavailableExcelCellTextFallback()
+        fallback: ExcelCellTextFallback = SystemExcelCellTextFallback()
     ) {
         self.accessibilityClient = accessibilityClient
         self.activeApplicationDetector = activeApplicationDetector
@@ -41,7 +64,24 @@ struct ExcelAdapter: SpreadsheetAdapter {
         let fallbackText = accessibilityText == nil ? normalized(await fallback.readCurrentCellText()) : nil
         let text = accessibilityText ?? fallbackText
         guard let text else { return nil }
-        return CellContext(text: text, frame: snapshot?.frame, app: .excel, row: nil, column: nil)
+        return CellContext(
+            text: text,
+            frame: trustedCellFrame(snapshot?.frame),
+            app: .excel,
+            row: nil,
+            column: nil
+        )
+    }
+
+    private func trustedCellFrame(_ frame: CGRect?) -> CGRect? {
+        guard let frame,
+              frame.width > 0,
+              frame.height > 0,
+              frame.width <= 500,
+              frame.height <= 160 else {
+            return nil
+        }
+        return frame
     }
 
     private func normalized(_ text: String?) -> String? {

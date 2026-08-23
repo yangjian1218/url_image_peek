@@ -24,6 +24,8 @@
     <true/>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 ImagePeek. All rights reserved.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>ImagePeek uses Microsoft Excel automation only to read the active cell when Accessibility cannot provide it.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

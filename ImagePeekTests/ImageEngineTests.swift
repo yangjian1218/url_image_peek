@@ -85,6 +85,41 @@ final class ImageEngineTests: XCTestCase {
         XCTAssertEqual(result?.data, data)
     }
 
+    func testRemoteLoaderReturnsMemoryCachedDataWithoutSecondFetch() async throws {
+        let url = URL(string: "https://example.com/cached-\(UUID().uuidString).jpg")!
+        let data = Data([0x01, 0x02])
+        let fetcher = CountingDataFetcher(values: [url: data])
+        let loader = RemoteImageLoader(fetcher: fetcher)
+
+        _ = try await loader.loadData(from: url)
+        let cachedResult = try await loader.loadData(from: url)
+        let requestCount = await fetcher.requestCount
+
+        XCTAssertEqual(cachedResult?.data, data)
+        XCTAssertEqual(requestCount, 1)
+    }
+
+    func testRemoteLoaderReturnsDiskCachedDataWithoutNetworkRequest() async throws {
+        let directory = makeTemporaryCacheDirectory()
+        let url = URL(string: "https://example.com/disk-cached.jpg")!
+        let data = Data([0x03, 0x04])
+        let diskCache = DiskImageCache(directory: directory)
+        let key = ImageCacheKey(originalURL: url, optimizationRuleVersion: RemoteImageLoader.cacheRuleVersion)
+        await diskCache.insert(data, for: key)
+        let fetcher = CountingDataFetcher(values: [:])
+        let loader = RemoteImageLoader(
+            fetcher: fetcher,
+            memoryCache: MemoryImageCache(),
+            diskCache: diskCache
+        )
+
+        let result = try await loader.loadData(from: url)
+        let requestCount = await fetcher.requestCount
+
+        XCTAssertEqual(result?.data, data)
+        XCTAssertEqual(requestCount, 0)
+    }
+
     func testNewerRemoteRequestSupersedesEarlierCompletion() async throws {
         let slowURL = URL(string: "https://example.com/slow.jpg")!
         let fastURL = URL(string: "https://example.com/fast.jpg")!
@@ -304,6 +339,21 @@ private struct ImmediateDataFetcher: RemoteDataFetching {
     let values: [URL: Data]
 
     func data(for url: URL) async throws -> Data {
+        guard let data = values[url] else { throw URLError(.badURL) }
+        return data
+    }
+}
+
+private actor CountingDataFetcher: RemoteDataFetching {
+    let values: [URL: Data]
+    private(set) var requestCount = 0
+
+    init(values: [URL: Data]) {
+        self.values = values
+    }
+
+    func data(for url: URL) async throws -> Data {
+        requestCount += 1
         guard let data = values[url] else { throw URLError(.badURL) }
         return data
     }

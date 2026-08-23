@@ -25,18 +25,40 @@ struct URLSessionDataFetcher: RemoteDataFetching {
 }
 
 actor RemoteImageLoader {
+    static let cacheRuleVersion = "cdn-v1"
+
     private let fetcher: any RemoteDataFetching
+    private let memoryCache: MemoryImageCache
+    private let diskCache: DiskImageCache
     private var requestGeneration = 0
     private var currentTask: Task<Data, Error>?
 
-    init(fetcher: any RemoteDataFetching = URLSessionDataFetcher()) {
+    init(
+        fetcher: any RemoteDataFetching = URLSessionDataFetcher(),
+        memoryCache: MemoryImageCache = MemoryImageCache(),
+        diskCache: DiskImageCache? = nil
+    ) {
         self.fetcher = fetcher
+        self.memoryCache = memoryCache
+        self.diskCache = diskCache ?? DiskImageCache(directory: Self.defaultCacheDirectory)
     }
 
     func loadData(from url: URL) async throws -> RemoteImageData? {
         requestGeneration &+= 1
         let generation = requestGeneration
         currentTask?.cancel()
+        currentTask = nil
+
+        let key = ImageCacheKey(originalURL: url, optimizationRuleVersion: Self.cacheRuleVersion)
+        if let data = await memoryCache.value(for: key) {
+            return generation == requestGeneration ? RemoteImageData(url: url, data: data) : nil
+        }
+
+        if let data = await diskCache.value(for: key) {
+            guard generation == requestGeneration else { return nil }
+            await memoryCache.insert(data, for: key)
+            return RemoteImageData(url: url, data: data)
+        }
 
         let fetcher = self.fetcher
         let task = Task.detached(priority: nil) {
@@ -52,6 +74,11 @@ actor RemoteImageLoader {
         do {
             let data = try await task.value
             guard generation == requestGeneration else { return nil }
+            await memoryCache.insert(data, for: key)
+            let diskCache = self.diskCache
+            Task {
+                await diskCache.insert(data, for: key)
+            }
             return RemoteImageData(url: url, data: data)
         } catch is CancellationError {
             return nil
@@ -62,5 +89,11 @@ actor RemoteImageLoader {
         requestGeneration &+= 1
         currentTask?.cancel()
         currentTask = nil
+    }
+
+    private static var defaultCacheDirectory: URL {
+        let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return cachesDirectory.appendingPathComponent("ImagePeek/ImageCache", isDirectory: true)
     }
 }

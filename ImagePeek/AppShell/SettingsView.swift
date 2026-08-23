@@ -36,7 +36,7 @@ struct SettingsView: View {
             }
 
             Section("First-round scope") {
-                Text("Spreadsheet adapters are safe placeholders. Preview loading, caching, hotkeys, and clipboard fallback are not active yet.")
+                Text("When Accessibility exposes a focused WPS or Excel cell containing an image URL or local image path, ImagePeek shows a non-activating preview beside the cell. WPS clipboard fallback remains opt-in and is never used by background polling.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

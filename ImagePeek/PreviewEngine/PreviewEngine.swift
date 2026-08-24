@@ -116,6 +116,12 @@ enum PreviewShortcutPolicy {
     }
 }
 
+enum KeyboardShortcutEventTapPolicy {
+    static func canStart(accessibilityGranted: Bool) -> Bool {
+        accessibilityGranted
+    }
+}
+
 enum PreviewShortcutResolver {
     static func shortcut(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> PreviewShortcut? {
         let significantModifiers = modifiers.intersection([.command, .control, .option, .function])

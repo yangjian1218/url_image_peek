@@ -111,6 +111,11 @@ final class PreviewEngineTests: XCTestCase {
         }
     }
 
+    func testKeyboardShortcutEventTapCanStartWithAccessibilityPermission() {
+        XCTAssertTrue(KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: true))
+        XCTAssertFalse(KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: false))
+    }
+
     func testShortcutResolverRecognizesOnlyDocumentedConditionalShortcuts() {
         XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 49, modifiers: []), .space)
         XCTAssertEqual(PreviewShortcutResolver.shortcut(keyCode: 53, modifiers: []), .escape)

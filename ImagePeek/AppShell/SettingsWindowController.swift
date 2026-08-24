@@ -8,7 +8,7 @@ final class SettingsWindowController: NSWindowController {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "ImagePeek Settings"
         window.styleMask = [.titled, .closable, .miniaturizable]
-        window.setContentSize(NSSize(width: 520, height: 430))
+        window.setContentSize(NSSize(width: 520, height: 360))
         window.center()
         window.isReleasedWhenClosed = false
         super.init(window: window)

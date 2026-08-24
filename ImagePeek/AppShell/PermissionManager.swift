@@ -5,11 +5,6 @@ protocol AccessibilityChecking {
     func requestTrustPrompt()
 }
 
-protocol KeyboardShortcutAccessChecking {
-    func isTrusted() -> Bool
-    func requestTrustPrompt()
-}
-
 struct SystemAccessibilityChecker: AccessibilityChecking {
     func isTrusted() -> Bool {
         AXIsProcessTrusted()
@@ -23,26 +18,11 @@ struct SystemAccessibilityChecker: AccessibilityChecking {
     }
 }
 
-struct SystemKeyboardShortcutAccessChecker: KeyboardShortcutAccessChecking {
-    func isTrusted() -> Bool {
-        CGPreflightListenEventAccess()
-    }
-
-    func requestTrustPrompt() {
-        CGRequestListenEventAccess()
-    }
-}
-
 final class PermissionManager {
     private let checker: AccessibilityChecking
-    private let keyboardShortcutChecker: KeyboardShortcutAccessChecking
 
-    init(
-        checker: AccessibilityChecking = SystemAccessibilityChecker(),
-        keyboardShortcutChecker: KeyboardShortcutAccessChecking = SystemKeyboardShortcutAccessChecker()
-    ) {
+    init(checker: AccessibilityChecking = SystemAccessibilityChecker()) {
         self.checker = checker
-        self.keyboardShortcutChecker = keyboardShortcutChecker
     }
 
     var isAccessibilityGranted: Bool {
@@ -53,11 +33,4 @@ final class PermissionManager {
         checker.requestTrustPrompt()
     }
 
-    var isKeyboardShortcutAccessGranted: Bool {
-        keyboardShortcutChecker.isTrusted()
-    }
-
-    func requestKeyboardShortcutAccess() {
-        keyboardShortcutChecker.requestTrustPrompt()
-    }
 }

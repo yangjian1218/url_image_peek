@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 
 @main
 final class ImagePeekApp: NSObject, NSApplicationDelegate {
@@ -6,7 +7,6 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
     private let settingsStore = SettingsStore()
     private var menuBarController: MenuBarController?
     private var previewRuntimeController: PreviewRuntimeController?
-    private var didBecomeActiveObserver: NSObjectProtocol?
 
     static func main() {
         let application = NSApplication.shared
@@ -22,19 +22,6 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
         )
         previewRuntimeController = PreviewRuntimeController(settingsStore: settingsStore)
         previewRuntimeController?.start()
-        didBecomeActiveObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didBecomeActiveNotification,
-            object: NSApp,
-            queue: .main
-        ) { [weak self] _ in
-            self?.previewRuntimeController?.retryKeyboardShortcutMonitoring()
-        }
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        if let didBecomeActiveObserver {
-            NotificationCenter.default.removeObserver(didBecomeActiveObserver)
-        }
     }
 }
 
@@ -105,10 +92,6 @@ private final class PreviewRuntimeController {
         )
         keyboardShortcutMonitor?.start()
         poll()
-    }
-
-    func retryKeyboardShortcutMonitoring() {
-        keyboardShortcutMonitor?.start()
     }
 
     private func poll() {
@@ -352,10 +335,7 @@ private final class KeyboardShortcutMonitor {
 
     func start() {
         guard eventTap == nil else { return }
-        guard CGPreflightListenEventAccess() else {
-            CGRequestListenEventAccess()
-            return
-        }
+        guard KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: AXIsProcessTrusted()) else { return }
         let eventMask = CGEventMask(1) << CGEventType.keyDown.rawValue
         let reference = Unmanaged.passUnretained(self).toOpaque()
         guard let eventTap = CGEvent.tapCreate(

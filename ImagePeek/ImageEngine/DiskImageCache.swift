@@ -11,6 +11,11 @@ struct SystemCacheClock: CacheClock {
     }
 }
 
+struct DiskCacheSummary: Equatable, Sendable {
+    let entryCount: Int
+    let byteCount: Int
+}
+
 actor DiskImageCache {
     private static let defaultMaximumBytes = 1_073_741_824
     private static let defaultMaximumAge: TimeInterval = 30 * 24 * 60 * 60
@@ -80,6 +85,27 @@ actor DiskImageCache {
         )
         enforceByteLimit(on: &manifest)
         saveManifest(manifest)
+    }
+
+    func summary() -> DiskCacheSummary? {
+        guard prepareDirectory() else { return nil }
+        var manifest = loadManifest()
+        removeExpiredEntries(from: &manifest, currentDate: clock.currentDate())
+        saveManifest(manifest)
+        return DiskCacheSummary(
+            entryCount: manifest.entries.count,
+            byteCount: manifest.entries.values.reduce(0) { $0 + $1.byteCount }
+        )
+    }
+
+    func clear() -> Bool {
+        guard prepareDirectory() else { return false }
+        let manifest = loadManifest()
+        for entry in manifest.entries.values {
+            removeFile(named: entry.fileName)
+        }
+        saveManifest(DiskCacheManifest(entries: [:]))
+        return true
     }
 
     private func prepareDirectory() -> Bool {

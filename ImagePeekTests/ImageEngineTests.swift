@@ -336,6 +336,32 @@ final class ImageEngineTests: XCTestCase {
         XCTAssertNil(secondValue)
         XCTAssertEqual(thirdValue, sixBytes)
     }
+
+    func testDiskCacheSummaryReportsStoredEntriesAndBytes() async {
+        let cache = DiskImageCache(directory: makeTemporaryCacheDirectory())
+        let key = ImageCacheKey(
+            originalURL: URL(string: "https://example.com/summary.jpg")!,
+            optimizationRuleVersion: "v1"
+        )
+        await cache.insert(Data(repeating: 1, count: 12), for: key)
+
+        let summary = await cache.summary()
+        XCTAssertEqual(summary, DiskCacheSummary(entryCount: 1, byteCount: 12))
+    }
+
+    func testDiskCacheClearRemovesItsEntries() async {
+        let cache = DiskImageCache(directory: makeTemporaryCacheDirectory())
+        let key = ImageCacheKey(
+            originalURL: URL(string: "https://example.com/clear.jpg")!,
+            optimizationRuleVersion: "v1"
+        )
+        await cache.insert(Data([1]), for: key)
+
+        let didClear = await cache.clear()
+        let summary = await cache.summary()
+        XCTAssertTrue(didClear)
+        XCTAssertEqual(summary, DiskCacheSummary(entryCount: 0, byteCount: 0))
+    }
 }
 
 private struct ImmediateDataFetcher: RemoteDataFetching {

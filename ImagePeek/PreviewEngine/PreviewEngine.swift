@@ -102,6 +102,30 @@ enum PreviewImageInfo {
     static func captionFrame(containerSize: CGSize) -> CGRect {
         CGRect(x: 8, y: 8, width: max(0, containerSize.width - 16), height: 20)
     }
+
+    static func captionText(
+        pixelSize: CGSize,
+        source: ImageLoadSource?,
+        showsPixelDimensions: Bool,
+        showsLoadSource: Bool
+    ) -> String? {
+        let sourceText: String?
+        switch source {
+        case .network:
+            sourceText = "Network"
+        case .diskCache:
+            sourceText = "Disk cache"
+        case .memoryCache:
+            sourceText = "Memory cache"
+        case nil:
+            sourceText = nil
+        }
+        let parts = [
+            showsPixelDimensions ? pixelSizeText(for: pixelSize) : nil,
+            showsLoadSource ? sourceText : nil,
+        ].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
 }
 
 enum PreviewDismissalPolicy {
@@ -218,14 +242,26 @@ final class PreviewPanelController {
         panel.contentView = contentView
     }
 
-    func show(image: NSImage, cellFrame: CGRect?, fallbackPoint: CGPoint?, screen: NSScreen? = NSScreen.main) {
+    func show(
+        image: NSImage,
+        cellFrame: CGRect?,
+        fallbackPoint: CGPoint?,
+        showsPixelDimensions: Bool = true,
+        loadSource: ImageLoadSource? = nil,
+        screen: NSScreen? = NSScreen.main
+    ) {
         let visibleFrame = screen?.visibleFrame ?? NSScreen.screens.first?.visibleFrame ?? .zero
         isExpanded = false
         lastCellFrame = cellFrame
         lastFallbackPoint = fallbackPoint
         panelSize = PreviewPanelLayout.contentSize(for: image.size)
         imageView.image = image
-        imageInfoLabel.stringValue = PreviewImageInfo.pixelSizeText(for: pixelSize(of: image))
+        updateCaption(
+            image: image,
+            source: loadSource,
+            showsPixelDimensions: showsPixelDimensions,
+            showsLoadSource: loadSource != nil
+        )
         panel.setContentSize(panelSize)
         layoutContent()
         panel.setFrame(
@@ -251,7 +287,7 @@ final class PreviewPanelController {
         lastFallbackPoint = nil
         panelSize = PreviewPanelLayout.contentSize(for: image.size)
         imageView.image = image
-        imageInfoLabel.stringValue = PreviewImageInfo.pixelSizeText(for: pixelSize(of: image))
+        updateCaption(image: image, source: nil, showsPixelDimensions: true, showsLoadSource: false)
         panel.setContentSize(panelSize)
         layoutContent()
         panel.setFrame(
@@ -316,6 +352,22 @@ final class PreviewPanelController {
     private func layoutContent() {
         scrollView.frame = contentView.bounds
         imageInfoLabel.frame = PreviewImageInfo.captionFrame(containerSize: contentView.bounds.size)
+    }
+
+    private func updateCaption(
+        image: NSImage,
+        source: ImageLoadSource?,
+        showsPixelDimensions: Bool,
+        showsLoadSource: Bool
+    ) {
+        let caption = PreviewImageInfo.captionText(
+            pixelSize: pixelSize(of: image),
+            source: source,
+            showsPixelDimensions: showsPixelDimensions,
+            showsLoadSource: showsLoadSource
+        )
+        imageInfoLabel.stringValue = caption ?? ""
+        imageInfoLabel.isHidden = caption == nil
     }
 }
 

@@ -85,6 +85,29 @@ final class PreviewEngineTests: XCTestCase {
         )
     }
 
+    func testPreviewCaptionCombinesConfiguredPixelSizeAndSource() {
+        XCTAssertEqual(
+            PreviewImageInfo.captionText(
+                pixelSize: CGSize(width: 900, height: 1200),
+                source: .diskCache,
+                showsPixelDimensions: true,
+                showsLoadSource: true
+            ),
+            "900 × 1200 px · Disk cache"
+        )
+    }
+
+    func testPreviewCaptionIsHiddenWhenBothDetailsAreDisabled() {
+        XCTAssertNil(
+            PreviewImageInfo.captionText(
+                pixelSize: .zero,
+                source: .network,
+                showsPixelDimensions: false,
+                showsLoadSource: false
+            )
+        )
+    }
+
     func testPreviewDismissalSuppressesOnlyTheDismissedSelection() {
         let dismissed = CellContext(text: "https://example.com/a.jpg", frame: nil, app: .excel, row: 2, column: 3)
         let other = CellContext(text: "https://example.com/b.jpg", frame: nil, app: .excel, row: 3, column: 3)

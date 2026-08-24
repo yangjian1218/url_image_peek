@@ -335,7 +335,11 @@ private final class KeyboardShortcutMonitor {
 
     func start() {
         guard eventTap == nil else { return }
-        guard KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: AXIsProcessTrusted()) else { return }
+        let accessibilityGranted = AXIsProcessTrusted()
+        guard KeyboardShortcutEventTapPolicy.startAction(accessibilityGranted: accessibilityGranted) == .start else {
+            Self.requestAccessibilityPrompt()
+            return
+        }
         let eventMask = CGEventMask(1) << CGEventType.keyDown.rawValue
         let reference = Unmanaged.passUnretained(self).toOpaque()
         guard let eventTap = CGEvent.tapCreate(
@@ -385,5 +389,12 @@ private final class KeyboardShortcutMonitor {
             monitor.handle(shortcut)
         }
         return nil
+    }
+
+    private static func requestAccessibilityPrompt() {
+        let options = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true,
+        ] as CFDictionary
+        AXIsProcessTrustedWithOptions(options)
     }
 }

@@ -74,6 +74,18 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(size.height, 520, accuracy: 0.0001)
     }
 
+    func testPreviewImageInfoFormatsPixelDimensions() {
+        XCTAssertEqual(PreviewImageInfo.pixelSizeText(for: CGSize(width: 900, height: 1200)), "900 × 1200 px")
+    }
+
+    func testPreviewDismissalSuppressesOnlyTheDismissedSelection() {
+        let dismissed = CellContext(text: "https://example.com/a.jpg", frame: nil, app: .excel, row: 2, column: 3)
+        let other = CellContext(text: "https://example.com/b.jpg", frame: nil, app: .excel, row: 3, column: 3)
+
+        XCTAssertTrue(PreviewDismissalPolicy.shouldSuppressLoad(context: dismissed, dismissedContext: dismissed))
+        XCTAssertFalse(PreviewDismissalPolicy.shouldSuppressLoad(context: other, dismissedContext: dismissed))
+    }
+
     func testPreviewScrollPolicyHidesScrollersAtDefaultZoomAndShowsAfterZoomingIn() {
         XCTAssertFalse(PreviewScrollPolicy.showsScrollers(for: 1))
         XCTAssertFalse(PreviewScrollPolicy.showsScrollers(for: 0.8))

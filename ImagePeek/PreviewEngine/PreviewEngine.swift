@@ -94,6 +94,18 @@ enum PreviewImageLayout {
     }
 }
 
+enum PreviewImageInfo {
+    static func pixelSizeText(for size: CGSize) -> String {
+        "\(Int(size.width.rounded())) × \(Int(size.height.rounded())) px"
+    }
+}
+
+enum PreviewDismissalPolicy {
+    static func shouldSuppressLoad(context: CellContext, dismissedContext: CellContext?) -> Bool {
+        context == dismissedContext
+    }
+}
+
 enum PreviewShortcut: Equatable {
     case escape
     case space
@@ -155,8 +167,10 @@ enum PreviewShortcutResolver {
 
 final class PreviewPanelController {
     private let panel: NSPanel
+    private let contentView = NSView()
     private let scrollView = NSScrollView()
     private let imageView = ZoomableImageView()
+    private let imageInfoLabel = NSTextField(labelWithString: "")
     private var panelSize = PreviewPanelLayout.defaultSize
     private var isExpanded = false
     private var lastCellFrame: CGRect?
@@ -182,11 +196,24 @@ final class PreviewPanelController {
         scrollView.autohidesScrollers = false
         scrollView.scrollerStyle = .overlay
         scrollView.drawsBackground = false
+        scrollView.autoresizingMask = [.width, .height]
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.imageAlignment = .alignCenter
         imageView.onZoom = { [weak self] scale in self?.applyZoom(scale) }
         scrollView.documentView = imageView
-        panel.contentView = scrollView
+
+        imageInfoLabel.alignment = .center
+        imageInfoLabel.textColor = .white
+        imageInfoLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        imageInfoLabel.wantsLayer = true
+        imageInfoLabel.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.62).cgColor
+        imageInfoLabel.layer?.cornerRadius = 4
+        imageInfoLabel.frame = CGRect(x: 8, y: 8, width: panelSize.width - 16, height: 20)
+        imageInfoLabel.autoresizingMask = [.width, .minYMargin]
+
+        contentView.addSubview(scrollView)
+        contentView.addSubview(imageInfoLabel)
+        panel.contentView = contentView
     }
 
     func show(image: NSImage, cellFrame: CGRect?, fallbackPoint: CGPoint?, screen: NSScreen? = NSScreen.main) {
@@ -196,6 +223,7 @@ final class PreviewPanelController {
         lastFallbackPoint = fallbackPoint
         panelSize = PreviewPanelLayout.contentSize(for: image.size)
         imageView.image = image
+        imageInfoLabel.stringValue = PreviewImageInfo.pixelSizeText(for: pixelSize(of: image))
         panel.setContentSize(panelSize)
         panel.setFrame(
             PreviewLayout.frame(
@@ -220,6 +248,7 @@ final class PreviewPanelController {
         lastFallbackPoint = nil
         panelSize = PreviewPanelLayout.contentSize(for: image.size)
         imageView.image = image
+        imageInfoLabel.stringValue = PreviewImageInfo.pixelSizeText(for: pixelSize(of: image))
         panel.setContentSize(panelSize)
         panel.setFrame(
             PinnedPreviewLayout.frame(panelSize: panelSize, visibleFrame: visibleFrame),
@@ -268,6 +297,15 @@ final class PreviewPanelController {
                 zoom: imageView.zoomScale
             )
         )
+    }
+
+    private func pixelSize(of image: NSImage) -> CGSize {
+        if let representation = image.representations.compactMap({ $0 as? NSBitmapImageRep }).first,
+           representation.pixelsWide > 0,
+           representation.pixelsHigh > 0 {
+            return CGSize(width: representation.pixelsWide, height: representation.pixelsHigh)
+        }
+        return image.size
     }
 }
 

@@ -40,6 +40,7 @@ private final class PreviewRuntimeController {
     private var displayedContext: CellContext?
     private var displayedRequest: PreviewRequest?
     private var displayedImage: NSImage?
+    private var dismissedContext: CellContext?
     private var pinnedPreview: (controller: PreviewPanelController, context: CellContext)?
     private var latestSelectionPoint: CGPoint?
     private var lastActiveApp: SpreadsheetApp?
@@ -100,6 +101,7 @@ private final class PreviewRuntimeController {
             readGeneration &+= 1
             hasPendingCellRead = false
             lastActiveApp = nil
+            dismissedContext = nil
             apply(.hide)
             return
         }
@@ -162,9 +164,11 @@ private final class PreviewRuntimeController {
 
         let activeApp = activeApplicationDetector.activeSpreadsheetApp()
         if WPSSelectionTriggerPolicy.shouldRequestClipboardRead(for: input, app: activeApp) {
+            dismissedContext = nil
             scheduleWPSClipboardRead()
         } else if SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: input, app: activeApp),
                   let activeApp {
+            dismissedContext = nil
             requestCurrentCellRead(for: activeApp)
         }
     }
@@ -219,6 +223,8 @@ private final class PreviewRuntimeController {
             Task { await remoteImageLoader.cancelCurrentLoad() }
 
         case let .load(request, context):
+            guard !PreviewDismissalPolicy.shouldSuppressLoad(context: context, dismissedContext: dismissedContext) else { return }
+            dismissedContext = nil
             guard displayedContext != context else { return }
             displayedContext = context
             displayedRequest = request
@@ -253,6 +259,7 @@ private final class PreviewRuntimeController {
 
         switch shortcut {
         case .escape:
+            dismissedContext = displayedContext
             apply(.hide)
         case .space:
             panelController.toggleExpandedPreview()

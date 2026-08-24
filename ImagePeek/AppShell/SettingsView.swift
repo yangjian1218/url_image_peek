@@ -4,19 +4,27 @@ struct SettingsView: View {
     let permissionManager: PermissionManager
     private let settingsStore: SettingsStore
     private let launchAtLoginController: LaunchAtLoginController
+    @ObservedObject private var operationsStatusStore: OperationsStatusStore
+    private let clearCache: () async -> Bool
 
     @State private var isAccessibilityGranted = false
     @State private var settings: ImagePeekSettings
     @State private var imageColumnText: String
     @State private var launchAtLoginError: String?
+    @State private var isClearingCache = false
+    @State private var cacheActionMessage: String?
 
     init(
         permissionManager: PermissionManager,
         settingsStore: SettingsStore,
+        operationsStatusStore: OperationsStatusStore,
+        clearCache: @escaping () async -> Bool,
         launchAtLoginController: LaunchAtLoginController = LaunchAtLoginController()
     ) {
         self.permissionManager = permissionManager
         self.settingsStore = settingsStore
+        _operationsStatusStore = ObservedObject(wrappedValue: operationsStatusStore)
+        self.clearCache = clearCache
         self.launchAtLoginController = launchAtLoginController
         let settings = settingsStore.load()
         _settings = State(initialValue: settings)
@@ -68,10 +76,46 @@ struct SettingsView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Preview") {
+                Toggle("Show pixel dimensions", isOn: $settings.showsPixelDimensions)
+                Toggle("Show load source", isOn: $settings.showsLoadSource)
+            }
+
+            Section("Cache") {
+                TextField("Maximum cache size (GiB)", value: $settings.cacheSizeGiB, format: .number)
+                TextField("Cache retention (days)", value: $settings.cacheRetentionDays, format: .number)
+                Text("Changes to cache limits apply after the next app launch.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                LabeledContent("Current cache", value: cacheSummaryText)
+                Button("Clear Cache") {
+                    Task {
+                        isClearingCache = true
+                        cacheActionMessage = await clearCache() ? "Cache cleared." : "Cache could not be cleared."
+                        isClearingCache = false
+                    }
+                }
+                .disabled(isClearingCache)
+                if let cacheActionMessage {
+                    Text(cacheActionMessage)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Diagnostics") {
+                let diagnostics = operationsStatusStore.diagnostics
+                LabeledContent("Network loads", value: "\(diagnostics.networkLoadCount)")
+                LabeledContent("Disk cache hits", value: "\(diagnostics.diskCacheHitCount)")
+                LabeledContent("Memory cache hits", value: "\(diagnostics.memoryCacheHitCount)")
+                LabeledContent("Local images", value: "\(diagnostics.localLoadCount)")
+                LabeledContent("Failures", value: "\(diagnostics.failureCount)")
+            }
         }
         .formStyle(.grouped)
         .padding()
-        .frame(minWidth: 520, minHeight: 360)
+        .frame(minWidth: 520, minHeight: 640)
         .onAppear(perform: refreshPermissionStatus)
         .onChange(of: imageColumnText) { text in
             settings.imageColumn = ImageColumnInput.column(from: text)
@@ -89,5 +133,10 @@ struct SettingsView: View {
 
     private func refreshPermissionStatus() {
         isAccessibilityGranted = permissionManager.isAccessibilityGranted
+    }
+
+    private var cacheSummaryText: String {
+        guard let summary = operationsStatusStore.cacheSummary else { return "Unavailable" }
+        return "\(summary.entryCount) items · \(ByteCountFormatter.string(fromByteCount: Int64(summary.byteCount), countStyle: .file))"
     }
 }

@@ -2,8 +2,18 @@ import AppKit
 import SwiftUI
 
 final class SettingsWindowController: NSWindowController {
-    init(permissionManager: PermissionManager, settingsStore: SettingsStore) {
-        let rootView = SettingsView(permissionManager: permissionManager, settingsStore: settingsStore)
+    init(
+        permissionManager: PermissionManager,
+        settingsStore: SettingsStore,
+        operationsStatusStore: OperationsStatusStore,
+        clearCache: @escaping () async -> Bool
+    ) {
+        let rootView = SettingsView(
+            permissionManager: permissionManager,
+            settingsStore: settingsStore,
+            operationsStatusStore: operationsStatusStore,
+            clearCache: clearCache
+        )
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hostingController)
         window.title = "ImagePeek Settings"

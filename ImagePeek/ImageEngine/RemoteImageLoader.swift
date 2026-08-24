@@ -100,6 +100,15 @@ actor RemoteImageLoader {
         currentTask = nil
     }
 
+    func cacheSummary() async -> DiskCacheSummary? {
+        await diskCache.summary()
+    }
+
+    func clearCache() async -> Bool {
+        await memoryCache.removeAll()
+        return await diskCache.clear()
+    }
+
     private static var defaultCacheDirectory: URL {
         let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory

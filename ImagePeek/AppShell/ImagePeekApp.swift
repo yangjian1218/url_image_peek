@@ -21,7 +21,9 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
         self.operationsStatusStore = operationsStatusStore
         menuBarController = MenuBarController(
             permissionManager: PermissionManager(),
-            settingsStore: settingsStore
+            settingsStore: settingsStore,
+            operationsStatusStore: operationsStatusStore,
+            clearCache: { [weak self] in await self?.previewRuntimeController?.clearCache() ?? false }
         )
         previewRuntimeController = PreviewRuntimeController(
             settingsStore: settingsStore,
@@ -33,6 +35,10 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
 
 @MainActor
 private final class PreviewRuntimeController {
+    private struct LoadedImage {
+        let image: NSImage
+        let source: ImageLoadSource?
+    }
     private let activeApplicationDetector: ActiveApplicationDetecting
     private let wpsAdapter: WPSAdapter
     private let excelAdapter: ExcelAdapter
@@ -103,6 +109,20 @@ private final class PreviewRuntimeController {
         )
         keyboardShortcutMonitor?.start()
         poll()
+        refreshCacheSummary()
+    }
+
+    func clearCache() async -> Bool {
+        let didClear = await remoteImageLoader.clearCache()
+        refreshCacheSummary()
+        return didClear
+    }
+
+    private func refreshCacheSummary() {
+        Task { [weak self] in
+            guard let self else { return }
+            self.operationsStatusStore.updateCacheSummary(await self.remoteImageLoader.cacheSummary())
+        }
     }
 
     private func poll() {
@@ -242,13 +262,16 @@ private final class PreviewRuntimeController {
             displayGeneration &+= 1
             let generation = displayGeneration
             Task { [weak self] in
-                guard let self, let image = await self.image(for: request) else { return }
+                guard let self, let loadedImage = await self.image(for: request) else { return }
                 guard generation == self.displayGeneration, self.displayedContext == context else { return }
-                self.displayedImage = image
+                self.displayedImage = loadedImage.image
+                let settings = self.settingsStore.load()
                 self.panelController.show(
-                    image: image,
+                    image: loadedImage.image,
                     cellFrame: context.frame,
-                    fallbackPoint: self.latestSelectionPoint ?? NSEvent.mouseLocation
+                    fallbackPoint: self.latestSelectionPoint ?? NSEvent.mouseLocation,
+                    showsPixelDimensions: settings.showsPixelDimensions,
+                    loadSource: settings.showsLoadSource ? loadedImage.source : nil
                 )
             }
         }
@@ -321,13 +344,13 @@ private final class PreviewRuntimeController {
         pinnedPreview = (controller, context)
     }
 
-    private func image(for request: PreviewRequest) async -> NSImage? {
+    private func image(for request: PreviewRequest) async -> LoadedImage? {
         let startedAt = Date()
         switch request {
         case let .local(url):
             let image = NSImage(contentsOf: url)
             recordDiagnostic(image == nil ? .failure : .localSuccess)
-            return image
+            return image.map { LoadedImage(image: $0, source: nil) }
         case let .remote(url):
             do {
                 guard let result = try await remoteImageLoader.loadData(from: url) else {
@@ -339,7 +362,7 @@ private final class PreviewRuntimeController {
                     return nil
                 }
                 recordDiagnostic(.success(source: result.source, elapsed: Date().timeIntervalSince(startedAt)))
-                return image
+                return LoadedImage(image: image, source: result.source)
             } catch {
                 recordDiagnostic(.failure)
                 return nil

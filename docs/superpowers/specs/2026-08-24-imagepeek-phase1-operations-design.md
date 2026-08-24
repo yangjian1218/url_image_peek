@@ -1,75 +1,75 @@
-# ImagePeek Phase 1 Operations Design
+# ImagePeek Phase 1 运营能力设计
 
-## Goal
+## 目标
 
-Complete the operational controls and diagnostics omitted from the native WPS and Microsoft Excel MVP. The work must preserve the established safety boundary: ImagePeek reads only the frontmost supported spreadsheet, does not mutate spreadsheet content, and does not consume unrelated input.
+补全原生 WPS 与 Microsoft Excel MVP 尚未实现的运营控制和诊断能力。本阶段必须保持既有安全边界：ImagePeek 只读取前台、受支持的表格应用；不修改表格内容；不吞掉无关输入。
 
-## Scope
+## 范围
 
-The phase adds:
+本阶段新增：
 
-- session-only, privacy-preserving image-load diagnostics;
-- disk-cache summary and a user-initiated ImagePeek-only cache clear operation;
-- persisted settings for pixel dimensions, load-source visibility, disk-cache byte limit, and disk-cache retention age;
-- settings sections for Preview, Cache, and Diagnostics.
+- 仅限当前会话、保护隐私的图片加载诊断；
+- 磁盘缓存摘要，以及用户主动触发、仅清理 ImagePeek 缓存的操作；
+- 像素尺寸显示、加载来源显示、磁盘缓存容量和缓存保留时间的持久化设置；
+- 设置窗口中的「预览」「缓存」「诊断」区域。
 
-The phase does not add browser spreadsheet support, telemetry, URL history, OCR, new global shortcuts, drag behaviour, or changes to WPS/Excel cell-reading strategies.
+本阶段不新增网页表格支持、遥测、URL 历史、OCR、新的全局快捷键、拖拽行为，也不修改 WPS/Excel 的单元格读取策略。
 
-## Architecture
+## 架构
 
-`RemoteImageLoader` remains the single owner of request cancellation and cache lookup. It will expose a small load outcome suitable for diagnostics, without retaining raw URL or image data in the diagnostic model.
+`RemoteImageLoader` 继续作为请求取消和缓存查询的唯一所有者。它将提供可供诊断使用的最小加载结果，但诊断模型不保留原始 URL 或图片数据。
 
-A `RuntimeDiagnostics` value records only aggregate session counts and the most recent result:
+`RuntimeDiagnostics` 只记录会话汇总和最近一次结果：
 
-- elapsed loading time;
-- result kind: success, failure, or cancellation;
-- image source for successful remote loads: network, disk cache, or memory cache.
+- 加载耗时；
+- 结果类型：成功、失败或取消；
+- 远程图片成功加载时的来源：网络、磁盘缓存或内存缓存。
 
-`PreviewRuntimeController` updates this value after each image request and makes a snapshot available to the settings UI. Local-image loads remain valid preview operations but have no remote cache source.
+`PreviewRuntimeController` 在每次图片请求完成后更新此数据，并向设置界面提供快照。本地图片仍可正常预览，但没有远程缓存来源。
 
-`DiskImageCache` gains summary and clear operations. Both are confined to its configured cache directory. Clear is explicit and user-initiated; failures safely report an unavailable summary rather than interrupt the user.
+`DiskImageCache` 增加摘要和清理操作，两者均严格限定在自己的缓存目录中。清理必须由用户明确触发；出现失败时安全地显示缓存摘要不可用，不中断用户工作。
 
-Cache policy is loaded from `ImagePeekSettings` when the runtime starts. The defaults are one GiB and thirty days, matching the existing cache behavior. Bounds validation prevents zero, negative, or unreasonably large user-entered values from reaching the cache implementation.
+运行时启动时从 `ImagePeekSettings` 读取缓存策略。默认值保持现有行为：1 GiB、30 天。输入边界校验会阻止零、负数或不合理的大值进入缓存实现。
 
-## Settings and UI
+## 设置与界面
 
-The existing General, Accessibility, and Spreadsheet sections remain unchanged. Three new sections are added:
+保留现有的「通用」「辅助功能」「表格」区域，不改变其行为。新增三个区域：
 
-- **Preview**: toggles for pixel dimensions and remote load source.
-- **Cache**: maximum size in GiB, retention in days, current entry/byte summary, and a Clear Cache button.
-- **Diagnostics**: session counts and the most recent load summary.
+- **预览**：显示像素尺寸、显示远程加载来源两个开关；
+- **缓存**：最大容量（GiB）、保留天数、当前条目/占用空间摘要，以及「清理缓存」按钮；
+- **诊断**：当前会话的计数与最近一次加载结果摘要。
 
-The default behavior is compatible with the current application: pixel dimensions are shown, load source is hidden, disk cache is one GiB, and retention is thirty days. The settings window remains non-intrusive; errors appear as inline text rather than system alerts.
+默认行为与当前应用兼容：显示像素尺寸、不显示加载来源、磁盘缓存为 1 GiB、保留 30 天。设置窗口继续保持非侵入式；错误通过窗口内文字呈现，不弹系统 Alert。
 
-The preview caption can include the configured pixel dimensions and source. If both are disabled, no caption overlay is shown.
+预览浮窗的标题说明可根据设置显示像素尺寸和加载来源；若两个选项都关闭，则不显示标题说明覆盖层。
 
-## Data Flow
+## 数据流
 
-1. The runtime reads persisted settings on startup and configures image loading and preview presentation.
-2. A selected WPS or Excel cell resolves to a preview request using the existing adapter path.
-3. The loader returns a success, failure, or cancellation result; its source is retained only for the active caption and aggregate diagnostic snapshot.
-4. The runtime updates the panel and diagnostics snapshot on the main actor.
-5. The settings view requests cache and diagnostics snapshots without reading spreadsheet content or activating a spreadsheet application.
+1. 运行时启动时读取持久化设置，并配置图片加载和预览展示；
+2. WPS 或 Excel 的已选单元格沿用现有 Adapter 路径，转换为预览请求；
+3. 加载器产出成功、失败或取消结果；来源仅用于当前标题说明和会话汇总；
+4. 运行时在主线程更新浮窗和诊断快照；
+5. 设置界面读取缓存与诊断快照，不读取表格内容，也不激活表格应用。
 
-## Error Handling and Safety
+## 错误处理与安全约束
 
-- Cache directory read/write failures result in cache misses or an unavailable summary; previews can still use memory or network data.
-- Clearing cache affects only ImagePeek's cache directory and is idempotent.
-- A cancelled obsolete request does not increment failure counts and cannot replace a newer preview.
-- No URL, local path, spreadsheet cell value, clipboard text, or image bytes are persisted in diagnostics.
-- Existing conditional shortcut policy and Accessibility boundaries are unchanged.
+- 缓存目录读写失败时按缓存未命中或摘要不可用处理；内存或网络加载仍可继续预览；
+- 清理缓存只影响 ImagePeek 的缓存目录，重复执行也安全；
+- 取消的过期请求不计入失败，且绝不能覆盖更新的预览；
+- 诊断不持久化 URL、本地路径、表格单元格值、剪贴板文本或图片字节；
+- 既有的条件快捷键策略和辅助功能权限边界不变。
 
-## Test Plan
+## 测试计划
 
-- Write red tests for settings defaults, Codable backward compatibility, and input bounds.
-- Test diagnostic aggregation for memory, disk, network, local, failed, and cancelled outcomes.
-- Test cache summary and explicit clear operations in a temporary ImagePeek cache directory.
-- Test caption composition for each visibility configuration.
-- Run the full XCTest suite, a Release build with signing disabled, and source safety checks before committing.
+- 先为设置默认值、Codable 向后兼容和输入边界写失败测试；
+- 测试内存缓存、磁盘缓存、网络、本地图片、失败和取消场景下的诊断汇总；
+- 在临时的 ImagePeek 缓存目录中测试缓存摘要和显式清理语义；
+- 测试各个显示开关组合下的标题说明；
+- 提交前运行完整 XCTest、关闭签名的 Release 构建，以及源代码安全检查。
 
-## Completion Criteria
+## 完成标准
 
-- The new settings persist across restart and default safely when old settings data lacks new fields.
-- The diagnostics UI exposes only aggregate session information.
-- Cache clearing is scoped to ImagePeek data and does not block previews.
-- All automated tests pass and no WPS/Excel input or permission behavior changes.
+- 新设置能跨重启保留；旧版设置数据缺少新字段时安全使用默认值；
+- 诊断界面只暴露会话汇总信息；
+- 缓存清理严格限定于 ImagePeek 数据，且不阻塞预览；
+- 全部自动化测试通过，WPS/Excel 的输入和权限行为没有变化。

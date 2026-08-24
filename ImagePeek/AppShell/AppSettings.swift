@@ -1,5 +1,6 @@
 import Foundation
 import ServiceManagement
+import Combine
 
 struct ImagePeekSettings: Codable, Equatable {
     var automaticPreview = true
@@ -110,6 +111,20 @@ struct RuntimeDiagnostics: Sendable {
         case .cancelled:
             break
         }
+    }
+}
+
+@MainActor
+final class OperationsStatusStore: ObservableObject {
+    @Published private(set) var diagnostics = RuntimeDiagnosticsSnapshot()
+    @Published private(set) var cacheSummary: DiskCacheSummary?
+
+    func updateDiagnostics(_ value: RuntimeDiagnosticsSnapshot) {
+        diagnostics = value
+    }
+
+    func updateCacheSummary(_ value: DiskCacheSummary?) {
+        cacheSummary = value
     }
 }
 

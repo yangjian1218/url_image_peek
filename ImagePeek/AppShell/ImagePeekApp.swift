@@ -5,6 +5,7 @@ import ApplicationServices
 final class ImagePeekApp: NSObject, NSApplicationDelegate {
     private static let appDelegate = ImagePeekApp()
     private let settingsStore = SettingsStore()
+    private var operationsStatusStore: OperationsStatusStore?
     private var menuBarController: MenuBarController?
     private var previewRuntimeController: PreviewRuntimeController?
 
@@ -16,11 +17,16 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        let operationsStatusStore = OperationsStatusStore()
+        self.operationsStatusStore = operationsStatusStore
         menuBarController = MenuBarController(
             permissionManager: PermissionManager(),
             settingsStore: settingsStore
         )
-        previewRuntimeController = PreviewRuntimeController(settingsStore: settingsStore)
+        previewRuntimeController = PreviewRuntimeController(
+            settingsStore: settingsStore,
+            operationsStatusStore: operationsStatusStore
+        )
         previewRuntimeController?.start()
     }
 }
@@ -33,6 +39,8 @@ private final class PreviewRuntimeController {
     private let panelController: PreviewPanelController
     private let remoteImageLoader: RemoteImageLoader
     private let settingsStore: SettingsStore
+    private let operationsStatusStore: OperationsStatusStore
+    private var diagnostics = RuntimeDiagnostics()
 
     private var pollTimer: Timer?
     private var selectionEventMonitor: Any?
@@ -58,7 +66,8 @@ private final class PreviewRuntimeController {
         wpsAdapter: WPSAdapter = WPSAdapter(),
         excelAdapter: ExcelAdapter = ExcelAdapter(),
         panelController: PreviewPanelController = PreviewPanelController(),
-        remoteImageLoader: RemoteImageLoader = RemoteImageLoader()
+        remoteImageLoader: RemoteImageLoader = RemoteImageLoader(),
+        operationsStatusStore: OperationsStatusStore
     ) {
         self.activeApplicationDetector = activeApplicationDetector
         self.wpsAdapter = wpsAdapter
@@ -66,6 +75,7 @@ private final class PreviewRuntimeController {
         self.panelController = panelController
         self.remoteImageLoader = remoteImageLoader
         self.settingsStore = settingsStore
+        self.operationsStatusStore = operationsStatusStore
     }
 
     func start() {
@@ -312,17 +322,34 @@ private final class PreviewRuntimeController {
     }
 
     private func image(for request: PreviewRequest) async -> NSImage? {
+        let startedAt = Date()
         switch request {
         case let .local(url):
-            return NSImage(contentsOf: url)
+            let image = NSImage(contentsOf: url)
+            recordDiagnostic(image == nil ? .failure : .localSuccess)
+            return image
         case let .remote(url):
             do {
-                guard let result = try await remoteImageLoader.loadData(from: url) else { return nil }
-                return NSImage(data: result.data)
+                guard let result = try await remoteImageLoader.loadData(from: url) else {
+                    recordDiagnostic(.cancelled)
+                    return nil
+                }
+                guard let image = NSImage(data: result.data) else {
+                    recordDiagnostic(.failure)
+                    return nil
+                }
+                recordDiagnostic(.success(source: result.source, elapsed: Date().timeIntervalSince(startedAt)))
+                return image
             } catch {
+                recordDiagnostic(.failure)
                 return nil
             }
         }
+    }
+
+    private func recordDiagnostic(_ result: RuntimeDiagnosticResult) {
+        diagnostics.record(result)
+        operationsStatusStore.updateDiagnostics(diagnostics.snapshot)
     }
 }
 

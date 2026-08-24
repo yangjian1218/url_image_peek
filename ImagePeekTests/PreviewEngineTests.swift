@@ -195,6 +195,15 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(diagnostics.snapshot.lastResult, .cancelled)
     }
 
+    @MainActor
+    func testOperationsStatusStorePublishesLatestDiagnosticsSnapshot() {
+        let store = OperationsStatusStore()
+
+        store.updateDiagnostics(RuntimeDiagnosticsSnapshot(networkLoadCount: 1))
+
+        XCTAssertEqual(store.diagnostics.networkLoadCount, 1)
+    }
+
     func testImageColumnFilterIncludesOnlyConfiguredColumn() {
         XCTAssertTrue(ImageColumnFilter(column: 3).includes(column: 3))
         XCTAssertFalse(ImageColumnFilter(column: 3).includes(column: 2))

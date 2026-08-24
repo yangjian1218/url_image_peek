@@ -75,7 +75,7 @@ final class ImageEngineTests: XCTestCase {
     }
 
     func testRemoteLoaderReturnsFetchedDataForCurrentRequest() async throws {
-        let url = URL(string: "https://example.com/image.jpg")!
+        let url = URL(string: "https://example.com/image-\(UUID().uuidString).jpg")!
         let data = Data([0x01, 0x02])
         let loader = RemoteImageLoader(fetcher: ImmediateDataFetcher(values: [url: data]))
 
@@ -83,6 +83,7 @@ final class ImageEngineTests: XCTestCase {
 
         XCTAssertEqual(result?.url, url)
         XCTAssertEqual(result?.data, data)
+        XCTAssertEqual(result?.source, .network)
     }
 
     func testRemoteLoaderReturnsMemoryCachedDataWithoutSecondFetch() async throws {
@@ -96,6 +97,7 @@ final class ImageEngineTests: XCTestCase {
         let requestCount = await fetcher.requestCount
 
         XCTAssertEqual(cachedResult?.data, data)
+        XCTAssertEqual(cachedResult?.source, .memoryCache)
         XCTAssertEqual(requestCount, 1)
     }
 
@@ -117,6 +119,7 @@ final class ImageEngineTests: XCTestCase {
         let requestCount = await fetcher.requestCount
 
         XCTAssertEqual(result?.data, data)
+        XCTAssertEqual(result?.source, .diskCache)
         XCTAssertEqual(requestCount, 0)
     }
 

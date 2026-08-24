@@ -3,6 +3,13 @@ import Foundation
 struct RemoteImageData: Equatable, Sendable {
     let url: URL
     let data: Data
+    let source: ImageLoadSource
+}
+
+enum ImageLoadSource: Equatable, Sendable {
+    case network
+    case diskCache
+    case memoryCache
 }
 
 protocol RemoteDataFetching: Sendable {
@@ -51,13 +58,15 @@ actor RemoteImageLoader {
 
         let key = ImageCacheKey(originalURL: url, optimizationRuleVersion: Self.cacheRuleVersion)
         if let data = await memoryCache.value(for: key) {
-            return generation == requestGeneration ? RemoteImageData(url: url, data: data) : nil
+            return generation == requestGeneration
+                ? RemoteImageData(url: url, data: data, source: .memoryCache)
+                : nil
         }
 
         if let data = await diskCache.value(for: key) {
             guard generation == requestGeneration else { return nil }
             await memoryCache.insert(data, for: key)
-            return RemoteImageData(url: url, data: data)
+            return RemoteImageData(url: url, data: data, source: .diskCache)
         }
 
         let fetcher = self.fetcher
@@ -79,7 +88,7 @@ actor RemoteImageLoader {
             Task {
                 await diskCache.insert(data, for: key)
             }
-            return RemoteImageData(url: url, data: data)
+            return RemoteImageData(url: url, data: data, source: .network)
         } catch is CancellationError {
             return nil
         }

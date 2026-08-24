@@ -6,6 +6,111 @@ struct ImagePeekSettings: Codable, Equatable {
     var launchAtLogin = false
     var imageColumn: Int?
     var wpsClipboardFallback = true
+    var showsPixelDimensions = true
+    var showsLoadSource = false
+    var cacheSizeGiB = 1
+    var cacheRetentionDays = 30
+
+    var cachePolicy: CachePolicy {
+        let boundedGiB = min(max(cacheSizeGiB, 1), 10)
+        let boundedDays = min(max(cacheRetentionDays, 1), 365)
+        return CachePolicy(
+            byteLimit: boundedGiB * CachePolicy.bytesPerGiB,
+            maximumAge: TimeInterval(boundedDays * 24 * 60 * 60)
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case automaticPreview
+        case launchAtLogin
+        case imageColumn
+        case wpsClipboardFallback
+        case showsPixelDimensions
+        case showsLoadSource
+        case cacheSizeGiB
+        case cacheRetentionDays
+    }
+
+    init(
+        automaticPreview: Bool = true,
+        launchAtLogin: Bool = false,
+        imageColumn: Int? = nil,
+        wpsClipboardFallback: Bool = true,
+        showsPixelDimensions: Bool = true,
+        showsLoadSource: Bool = false,
+        cacheSizeGiB: Int = 1,
+        cacheRetentionDays: Int = 30
+    ) {
+        self.automaticPreview = automaticPreview
+        self.launchAtLogin = launchAtLogin
+        self.imageColumn = imageColumn
+        self.wpsClipboardFallback = wpsClipboardFallback
+        self.showsPixelDimensions = showsPixelDimensions
+        self.showsLoadSource = showsLoadSource
+        self.cacheSizeGiB = cacheSizeGiB
+        self.cacheRetentionDays = cacheRetentionDays
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        automaticPreview = try container.decodeIfPresent(Bool.self, forKey: .automaticPreview) ?? true
+        launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
+        imageColumn = try container.decodeIfPresent(Int.self, forKey: .imageColumn)
+        wpsClipboardFallback = try container.decodeIfPresent(Bool.self, forKey: .wpsClipboardFallback) ?? true
+        showsPixelDimensions = try container.decodeIfPresent(Bool.self, forKey: .showsPixelDimensions) ?? true
+        showsLoadSource = try container.decodeIfPresent(Bool.self, forKey: .showsLoadSource) ?? false
+        cacheSizeGiB = try container.decodeIfPresent(Int.self, forKey: .cacheSizeGiB) ?? 1
+        cacheRetentionDays = try container.decodeIfPresent(Int.self, forKey: .cacheRetentionDays) ?? 30
+    }
+}
+
+struct CachePolicy: Equatable, Sendable {
+    static let bytesPerGiB = 1_073_741_824
+    static let defaultMaximumAge: TimeInterval = 30 * 24 * 60 * 60
+
+    let byteLimit: Int
+    let maximumAge: TimeInterval
+}
+
+enum RuntimeDiagnosticResult: Equatable, Sendable {
+    case success(source: ImageLoadSource, elapsed: TimeInterval)
+    case localSuccess
+    case failure
+    case cancelled
+}
+
+struct RuntimeDiagnosticsSnapshot: Equatable, Sendable {
+    var networkLoadCount = 0
+    var diskCacheHitCount = 0
+    var memoryCacheHitCount = 0
+    var localLoadCount = 0
+    var failureCount = 0
+    var lastResult: RuntimeDiagnosticResult?
+}
+
+struct RuntimeDiagnostics: Sendable {
+    private(set) var snapshot = RuntimeDiagnosticsSnapshot()
+
+    mutating func record(_ result: RuntimeDiagnosticResult) {
+        snapshot.lastResult = result
+        switch result {
+        case let .success(source, _):
+            switch source {
+            case .network:
+                snapshot.networkLoadCount += 1
+            case .diskCache:
+                snapshot.diskCacheHitCount += 1
+            case .memoryCache:
+                snapshot.memoryCacheHitCount += 1
+            }
+        case .localSuccess:
+            snapshot.localLoadCount += 1
+        case .failure:
+            snapshot.failureCount += 1
+        case .cancelled:
+            break
+        }
+    }
 }
 
 struct ImageColumnFilter: Equatable {

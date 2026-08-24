@@ -173,6 +173,28 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(store.load(), settings)
     }
 
+    func testSettingsDecodeMissingOperationsFieldsWithSafeDefaults() throws {
+        let data = Data(#"{"automaticPreview":true,"launchAtLogin":false,"wpsClipboardFallback":true}"#.utf8)
+
+        let settings = try JSONDecoder().decode(ImagePeekSettings.self, from: data)
+
+        XCTAssertTrue(settings.showsPixelDimensions)
+        XCTAssertFalse(settings.showsLoadSource)
+        XCTAssertEqual(settings.cachePolicy.byteLimit, 1_073_741_824)
+        XCTAssertEqual(settings.cachePolicy.maximumAge, 30 * 24 * 60 * 60)
+    }
+
+    func testDiagnosticsDoesNotCountCancellationAsFailure() {
+        var diagnostics = RuntimeDiagnostics()
+
+        diagnostics.record(.success(source: .memoryCache, elapsed: 0.012))
+        diagnostics.record(.cancelled)
+
+        XCTAssertEqual(diagnostics.snapshot.memoryCacheHitCount, 1)
+        XCTAssertEqual(diagnostics.snapshot.failureCount, 0)
+        XCTAssertEqual(diagnostics.snapshot.lastResult, .cancelled)
+    }
+
     func testImageColumnFilterIncludesOnlyConfiguredColumn() {
         XCTAssertTrue(ImageColumnFilter(column: 3).includes(column: 3))
         XCTAssertFalse(ImageColumnFilter(column: 3).includes(column: 2))

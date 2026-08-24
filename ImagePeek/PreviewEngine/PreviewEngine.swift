@@ -98,6 +98,10 @@ enum PreviewImageInfo {
     static func pixelSizeText(for size: CGSize) -> String {
         "\(Int(size.width.rounded())) × \(Int(size.height.rounded())) px"
     }
+
+    static func captionFrame(containerSize: CGSize) -> CGRect {
+        CGRect(x: 8, y: 8, width: max(0, containerSize.width - 16), height: 20)
+    }
 }
 
 enum PreviewDismissalPolicy {
@@ -196,7 +200,6 @@ final class PreviewPanelController {
         scrollView.autohidesScrollers = false
         scrollView.scrollerStyle = .overlay
         scrollView.drawsBackground = false
-        scrollView.autoresizingMask = [.width, .height]
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.imageAlignment = .alignCenter
         imageView.onZoom = { [weak self] scale in self?.applyZoom(scale) }
@@ -208,8 +211,7 @@ final class PreviewPanelController {
         imageInfoLabel.wantsLayer = true
         imageInfoLabel.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.62).cgColor
         imageInfoLabel.layer?.cornerRadius = 4
-        imageInfoLabel.frame = CGRect(x: 8, y: 8, width: panelSize.width - 16, height: 20)
-        imageInfoLabel.autoresizingMask = [.width, .minYMargin]
+        imageInfoLabel.frame = PreviewImageInfo.captionFrame(containerSize: panelSize)
 
         contentView.addSubview(scrollView)
         contentView.addSubview(imageInfoLabel)
@@ -225,6 +227,7 @@ final class PreviewPanelController {
         imageView.image = image
         imageInfoLabel.stringValue = PreviewImageInfo.pixelSizeText(for: pixelSize(of: image))
         panel.setContentSize(panelSize)
+        layoutContent()
         panel.setFrame(
             PreviewLayout.frame(
                 cellFrame: cellFrame,
@@ -250,6 +253,7 @@ final class PreviewPanelController {
         imageView.image = image
         imageInfoLabel.stringValue = PreviewImageInfo.pixelSizeText(for: pixelSize(of: image))
         panel.setContentSize(panelSize)
+        layoutContent()
         panel.setFrame(
             PinnedPreviewLayout.frame(panelSize: panelSize, visibleFrame: visibleFrame),
             display: true
@@ -266,6 +270,7 @@ final class PreviewPanelController {
             ? PreviewPanelLayout.expandedContentSize(for: image.size, visibleFrame: visibleFrame)
             : PreviewPanelLayout.contentSize(for: image.size)
         panel.setContentSize(panelSize)
+        layoutContent()
         panel.setFrame(
             PreviewLayout.frame(
                 cellFrame: lastCellFrame,
@@ -306,6 +311,11 @@ final class PreviewPanelController {
             return CGSize(width: representation.pixelsWide, height: representation.pixelsHigh)
         }
         return image.size
+    }
+
+    private func layoutContent() {
+        scrollView.frame = contentView.bounds
+        imageInfoLabel.frame = PreviewImageInfo.captionFrame(containerSize: contentView.bounds.size)
     }
 }
 

@@ -78,6 +78,13 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(PreviewImageInfo.pixelSizeText(for: CGSize(width: 900, height: 1200)), "900 × 1200 px")
     }
 
+    func testPreviewImageInfoPlacesCaptionInsideBottomOfPanel() {
+        XCTAssertEqual(
+            PreviewImageInfo.captionFrame(containerSize: CGSize(width: 320, height: 480)),
+            CGRect(x: 8, y: 8, width: 304, height: 20)
+        )
+    }
+
     func testPreviewDismissalSuppressesOnlyTheDismissedSelection() {
         let dismissed = CellContext(text: "https://example.com/a.jpg", frame: nil, app: .excel, row: 2, column: 3)
         let other = CellContext(text: "https://example.com/b.jpg", frame: nil, app: .excel, row: 3, column: 3)

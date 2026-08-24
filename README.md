@@ -6,17 +6,19 @@ ImagePeek is a native macOS menu-bar application for instant image preview from 
 
 ## Current milestone
 
-This repository currently contains the first Phase 1 skeleton:
+This repository contains the Phase 1 native spreadsheet MVP:
 
 - macOS 13+ AppKit menu-bar application (`LSUIElement` agent, no Dock icon)
 - SwiftUI settings window
 - explicit Accessibility permission status and request boundary
 - `SpreadsheetAdapter` contracts and pure active-application classification
-- safe no-op WPS and Microsoft Excel adapters
-- ImageEngine and PreviewEngine module boundaries
-- XCTest coverage for application classification, adapter safety defaults, and permission-request behavior
+- WPS clipboard fallback and Excel AppleScript fallback, both constrained to the frontmost spreadsheet
+- remote/local image loading, OSS optimization, memory and disk caches
+- non-activating preview panel, pixel dimensions, conditional shortcuts, and pinned preview
+- persisted settings, image-column filtering, and login-item registration
+- XCTest coverage for application classification, adapter safety defaults, cache behavior, and preview policy
 
-The adapters do not yet read cells. Image loading, caching, preview panels, shortcuts, clipboard fallback, login-at-launch, and web spreadsheets are intentionally not active in this round.
+Web spreadsheets remain Phase 2 work.
 
 ## Build and test
 
@@ -36,6 +38,10 @@ xcodebuild -project ImagePeek.xcodeproj \
   CODE_SIGNING_ALLOWED=NO test
 ```
 
+## Release packaging
+
+See [docs/RELEASE.md](docs/RELEASE.md) for the unsigned review archive and the later Developer ID signing/notarization flow. Distribution credentials stay in the local Keychain and are never committed.
+
 ## Safety baseline
 
-ImagePeek prioritizes system stability over missed previews. The current source contains no global mouse event taps, input swallowing, clipboard access, network requests, OCR, or spreadsheet mutation. Accessibility permission is requested only when the user presses the button in Settings.
+ImagePeek prioritizes system stability over missed previews. It does not swallow global mouse events, mutate spreadsheet data, use OCR, or show system alerts during preview failures. Accessibility is limited to reading the frontmost supported spreadsheet; WPS clipboard fallback saves and restores the user's clipboard.

@@ -5,6 +5,7 @@ struct SettingsView: View {
     private let settingsStore: SettingsStore
 
     @State private var isAccessibilityGranted = false
+    @State private var isKeyboardShortcutAccessGranted = false
     @State private var settings: ImagePeekSettings
 
     init(permissionManager: PermissionManager, settingsStore: SettingsStore) {
@@ -44,6 +45,28 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Keyboard shortcuts") {
+                HStack {
+                    Label(
+                        isKeyboardShortcutAccessGranted ? "Permission granted" : "Input Monitoring required",
+                        systemImage: isKeyboardShortcutAccessGranted ? "checkmark.circle.fill" : "keyboard.badge.ellipsis"
+                    )
+                    .foregroundStyle(isKeyboardShortcutAccessGranted ? .green : .orange)
+
+                    Spacer()
+
+                    if !isKeyboardShortcutAccessGranted {
+                        Button("Enable Shortcuts") {
+                            permissionManager.requestKeyboardShortcutAccess()
+                        }
+                    }
+                }
+
+                Text("Space, Esc, and Option shortcuts need Input Monitoring. ImagePeek only handles them while an ImagePeek preview is visible in WPS or Microsoft Excel.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Spreadsheet") {
                 Toggle("Use WPS clipboard fallback", isOn: $settings.wpsClipboardFallback)
                 Text("WPS does not expose the selected cell text through Accessibility on this Mac. ImagePeek observes WPS selection changes and temporarily copies the cell value, then restores your clipboard.")
@@ -53,12 +76,16 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .frame(minWidth: 520, minHeight: 360)
+        .frame(minWidth: 520, minHeight: 430)
         .onAppear(perform: refreshPermissionStatus)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshPermissionStatus()
+        }
         .onChange(of: settings) { settingsStore.save($0) }
     }
 
     private func refreshPermissionStatus() {
         isAccessibilityGranted = permissionManager.isAccessibilityGranted
+        isKeyboardShortcutAccessGranted = permissionManager.isKeyboardShortcutAccessGranted
     }
 }

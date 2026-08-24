@@ -18,6 +18,27 @@ final class PermissionManagerTests: XCTestCase {
 
         XCTAssertEqual(checker.requestCount, 1)
     }
+
+    func testKeyboardShortcutStatusDoesNotRequestPermission() {
+        let accessibilityChecker = AccessibilityCheckerSpy(isTrusted: true)
+        let keyboardChecker = KeyboardShortcutCheckerSpy(isTrusted: true)
+        let manager = PermissionManager(
+            checker: accessibilityChecker,
+            keyboardShortcutChecker: keyboardChecker
+        )
+
+        XCTAssertTrue(manager.isKeyboardShortcutAccessGranted)
+        XCTAssertEqual(keyboardChecker.requestCount, 0)
+    }
+
+    func testKeyboardShortcutRequestDelegatesExactlyOnce() {
+        let keyboardChecker = KeyboardShortcutCheckerSpy(isTrusted: false)
+        let manager = PermissionManager(keyboardShortcutChecker: keyboardChecker)
+
+        manager.requestKeyboardShortcutAccess()
+
+        XCTAssertEqual(keyboardChecker.requestCount, 1)
+    }
 }
 
 private final class AccessibilityCheckerSpy: AccessibilityChecking {
@@ -26,6 +47,21 @@ private final class AccessibilityCheckerSpy: AccessibilityChecking {
 
     init(isTrusted: Bool) {
         trusted = isTrusted
+    }
+
+    func isTrusted() -> Bool { trusted }
+
+    func requestTrustPrompt() {
+        requestCount += 1
+    }
+}
+
+private final class KeyboardShortcutCheckerSpy: KeyboardShortcutAccessChecking {
+    private let trusted: Bool
+    private(set) var requestCount = 0
+
+    init(isTrusted: Bool) {
+        self.trusted = isTrusted
     }
 
     func isTrusted() -> Bool { trusted }

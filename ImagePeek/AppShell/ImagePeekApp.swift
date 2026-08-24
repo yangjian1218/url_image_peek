@@ -6,6 +6,7 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
     private let settingsStore = SettingsStore()
     private var menuBarController: MenuBarController?
     private var previewRuntimeController: PreviewRuntimeController?
+    private var didBecomeActiveObserver: NSObjectProtocol?
 
     static func main() {
         let application = NSApplication.shared
@@ -21,6 +22,19 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
         )
         previewRuntimeController = PreviewRuntimeController(settingsStore: settingsStore)
         previewRuntimeController?.start()
+        didBecomeActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: NSApp,
+            queue: .main
+        ) { [weak self] _ in
+            self?.previewRuntimeController?.retryKeyboardShortcutMonitoring()
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        if let didBecomeActiveObserver {
+            NotificationCenter.default.removeObserver(didBecomeActiveObserver)
+        }
     }
 }
 
@@ -91,6 +105,10 @@ private final class PreviewRuntimeController {
         )
         keyboardShortcutMonitor?.start()
         poll()
+    }
+
+    func retryKeyboardShortcutMonitoring() {
+        keyboardShortcutMonitor?.start()
     }
 
     private func poll() {

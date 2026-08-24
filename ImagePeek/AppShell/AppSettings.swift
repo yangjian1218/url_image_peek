@@ -1,4 +1,5 @@
 import Foundation
+import ServiceManagement
 
 struct ImagePeekSettings: Codable, Equatable {
     var automaticPreview = true
@@ -13,6 +14,53 @@ struct ImageColumnFilter: Equatable {
 
     func includes(column: Int?) -> Bool {
         self.column == nil || self.column == column
+    }
+}
+
+enum ImageColumnInput {
+    static func column(from text: String) -> Int? {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty,
+              let column = Int(trimmedText),
+              column > 0 else {
+            return nil
+        }
+        return column
+    }
+
+    static func text(for column: Int?) -> String {
+        column.map(String.init) ?? ""
+    }
+}
+
+protocol LaunchAtLoginServicing {
+    func setEnabled(_ enabled: Bool) throws
+}
+
+struct SystemLaunchAtLoginService: LaunchAtLoginServicing {
+    func setEnabled(_ enabled: Bool) throws {
+        if enabled {
+            try SMAppService.mainApp.register()
+        } else {
+            try SMAppService.mainApp.unregister()
+        }
+    }
+}
+
+final class LaunchAtLoginController {
+    private let service: LaunchAtLoginServicing
+
+    init(service: LaunchAtLoginServicing = SystemLaunchAtLoginService()) {
+        self.service = service
+    }
+
+    func apply(enabled: Bool) -> Bool {
+        do {
+            try service.setEnabled(enabled)
+            return true
+        } catch {
+            return false
+        }
     }
 }
 

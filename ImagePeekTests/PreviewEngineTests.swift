@@ -159,4 +159,49 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertFalse(ImageColumnFilter(column: 3).includes(column: 2))
         XCTAssertTrue(ImageColumnFilter.all.includes(column: nil))
     }
+
+    func testImageColumnInputUsesBlankForAllColumnsAndPositiveValuesForFiltering() {
+        XCTAssertNil(ImageColumnInput.column(from: "  "))
+        XCTAssertEqual(ImageColumnInput.column(from: "3"), 3)
+        XCTAssertNil(ImageColumnInput.column(from: "0"))
+        XCTAssertNil(ImageColumnInput.column(from: "column C"))
+        XCTAssertEqual(ImageColumnInput.text(for: 3), "3")
+        XCTAssertEqual(ImageColumnInput.text(for: nil), "")
+    }
+
+    func testLaunchAtLoginControllerDelegatesRequestedState() {
+        let service = LaunchAtLoginServiceSpy()
+        let controller = LaunchAtLoginController(service: service)
+
+        XCTAssertTrue(controller.apply(enabled: true))
+        XCTAssertEqual(service.requests, [true])
+        XCTAssertTrue(controller.apply(enabled: false))
+        XCTAssertEqual(service.requests, [true, false])
+    }
+
+    func testLaunchAtLoginControllerReportsServiceFailure() {
+        let service = LaunchAtLoginServiceSpy(error: LaunchAtLoginServiceSpy.Error.denied)
+        let controller = LaunchAtLoginController(service: service)
+
+        XCTAssertFalse(controller.apply(enabled: true))
+        XCTAssertEqual(service.requests, [true])
+    }
+}
+
+private final class LaunchAtLoginServiceSpy: LaunchAtLoginServicing {
+    enum Error: Swift.Error {
+        case denied
+    }
+
+    let error: Swift.Error?
+    private(set) var requests: [Bool] = []
+
+    init(error: Swift.Error? = nil) {
+        self.error = error
+    }
+
+    func setEnabled(_ enabled: Bool) throws {
+        requests.append(enabled)
+        if let error { throw error }
+    }
 }

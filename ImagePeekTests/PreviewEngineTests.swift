@@ -74,6 +74,12 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(size.height, 520, accuracy: 0.0001)
     }
 
+    func testPreviewScrollPolicyHidesScrollersAtDefaultZoomAndShowsAfterZoomingIn() {
+        XCTAssertFalse(PreviewScrollPolicy.showsScrollers(for: 1))
+        XCTAssertFalse(PreviewScrollPolicy.showsScrollers(for: 0.8))
+        XCTAssertTrue(PreviewScrollPolicy.showsScrollers(for: 1.01))
+    }
+
     func testPreviewPanelLayoutUsesPortraitAspectWithoutEmptySideArea() {
         XCTAssertEqual(
             PreviewPanelLayout.contentSize(for: CGSize(width: 1200, height: 1800)),
@@ -97,6 +103,12 @@ final class PreviewEngineTests: XCTestCase {
 
     func testShortcutPolicyRejectsBareLetters() {
         XCTAssertFalse(PreviewShortcutPolicy.canHandle(.letter("p"), app: .wps, hasPreview: true))
+    }
+
+    func testShortcutPolicyAllowsAllDocumentedActionsForExcelPreview() {
+        for shortcut in [PreviewShortcut.space, .optionC, .optionO, .optionR, .optionP] {
+            XCTAssertTrue(PreviewShortcutPolicy.canHandle(shortcut, app: .excel, hasPreview: true))
+        }
     }
 
     func testShortcutResolverRecognizesOnlyDocumentedConditionalShortcuts() {

@@ -41,15 +41,18 @@ struct ExcelAdapter: SpreadsheetAdapter {
     private let accessibilityClient: AccessibilityClient
     private let activeApplicationDetector: ActiveApplicationDetecting
     private let fallback: ExcelCellTextFallback
+    private let imageSourceResolver: ImageSourceResolver
 
     init(
         accessibilityClient: AccessibilityClient = SystemAccessibilityClient(),
         activeApplicationDetector: ActiveApplicationDetecting = ActiveAppDetector(),
-        fallback: ExcelCellTextFallback = SystemExcelCellTextFallback()
+        fallback: ExcelCellTextFallback = SystemExcelCellTextFallback(),
+        imageSourceResolver: ImageSourceResolver = ImageSourceResolver()
     ) {
         self.accessibilityClient = accessibilityClient
         self.activeApplicationDetector = activeApplicationDetector
         self.fallback = fallback
+        self.imageSourceResolver = imageSourceResolver
     }
 
     func isAvailable() -> Bool {
@@ -61,8 +64,11 @@ struct ExcelAdapter: SpreadsheetAdapter {
         guard isAvailable() else { return nil }
         let snapshot = accessibilityClient.currentCellSnapshot()
         let accessibilityText = normalized(snapshot?.text)
-        let fallbackText = accessibilityText == nil ? normalized(await fallback.readCurrentCellText()) : nil
-        let text = accessibilityText ?? fallbackText
+        let usableAccessibilityText = accessibilityText.flatMap {
+            imageSourceResolver.resolve($0) == nil ? nil : $0
+        }
+        let fallbackText = usableAccessibilityText == nil ? normalized(await fallback.readCurrentCellText()) : nil
+        let text = usableAccessibilityText ?? fallbackText
         guard let text else { return nil }
         return CellContext(
             text: text,

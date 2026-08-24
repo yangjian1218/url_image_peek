@@ -79,6 +79,12 @@ enum PreviewZoom {
     }
 }
 
+enum PreviewScrollPolicy {
+    static func showsScrollers(for zoom: CGFloat) -> Bool {
+        PreviewZoom.clamped(zoom) > 1
+    }
+}
+
 enum PreviewImageLayout {
     static func displaySize(imageSize: CGSize, availableSize: CGSize, zoom: CGFloat) -> CGSize {
         guard imageSize.width > 0, imageSize.height > 0 else { return availableSize }
@@ -156,8 +162,10 @@ final class PreviewPanelController {
         panel.isOpaque = false
         panel.hasShadow = true
 
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = true
+        scrollView.hasVerticalScroller = false
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = false
+        scrollView.scrollerStyle = .overlay
         scrollView.drawsBackground = false
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.imageAlignment = .alignCenter
@@ -233,6 +241,9 @@ final class PreviewPanelController {
 
     private func applyZoom(_ scale: CGFloat) {
         imageView.zoomScale = PreviewZoom.clamped(scale)
+        let showsScrollers = PreviewScrollPolicy.showsScrollers(for: imageView.zoomScale)
+        scrollView.hasVerticalScroller = showsScrollers
+        scrollView.hasHorizontalScroller = showsScrollers
         let imageSize = imageView.image?.size ?? panelSize
         imageView.frame = CGRect(
             origin: .zero,

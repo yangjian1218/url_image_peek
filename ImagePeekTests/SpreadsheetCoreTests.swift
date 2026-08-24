@@ -171,6 +171,23 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(fallback.callCount, 1)
     }
 
+    func testExcelUsesAdapterFallbackWhenAccessibilityTextIsNotAnImageSource() async {
+        let fallback = ExcelFallbackSpy(result: "https://example.com/full-image.jpg")
+        let adapter = ExcelAdapter(
+            accessibilityClient: FakeAccessibilityClient(
+                isTrusted: true,
+                snapshot: AccessibilityCellSnapshot(text: "https://", frame: nil)
+            ),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .excel),
+            fallback: fallback
+        )
+
+        let cell = await adapter.currentCell()
+
+        XCTAssertEqual(cell?.text, "https://example.com/full-image.jpg")
+        XCTAssertEqual(fallback.callCount, 1)
+    }
+
     func testExcelFallbackRejectsLargeAccessibilityGroupFrame() async {
         let fallback = ExcelFallbackSpy(result: "https://example.com/fallback.jpg")
         let adapter = ExcelAdapter(

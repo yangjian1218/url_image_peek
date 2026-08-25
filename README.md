@@ -6,7 +6,7 @@ ImagePeek is a native macOS menu-bar application for instant image preview from 
 
 ## Current milestone
 
-This repository contains the Phase 1 native spreadsheet MVP:
+This repository contains the native spreadsheet MVP:
 
 - macOS 13+ AppKit menu-bar application (`LSUIElement` agent, no Dock icon)
 - SwiftUI settings window
@@ -16,9 +16,12 @@ This repository contains the Phase 1 native spreadsheet MVP:
 - remote/local image loading, OSS optimization, memory and disk caches
 - non-activating preview panel, pixel dimensions, conditional shortcuts, and pinned preview
 - persisted settings, image-column filtering, and login-item registration
+- Chrome Feishu Sheets Accessibility adapter, limited to `*.feishu.cn/sheets/`
+- zoomed-image mouse panning with bounded scrolling
 - XCTest coverage for application classification, adapter safety defaults, cache behavior, and preview policy
 
-Web spreadsheets remain Phase 2 work.
+Other web spreadsheets remain future work. Feishu support currently requires Google Chrome,
+an already-authorized Accessibility permission, and a supported Feishu Sheets page.
 
 ## Build and test
 

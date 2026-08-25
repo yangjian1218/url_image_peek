@@ -20,24 +20,24 @@
 
 **文件：** 修改 `ImagePeek/SpreadsheetEngine/SpreadsheetModels.swift`、创建 `ImagePeek/SpreadsheetEngine/WebSheetAdapter.swift`、修改 `ImagePeekTests/SpreadsheetCoreTests.swift`。
 
-- [ ] 写失败测试：飞书 Chrome URL 被接受、非飞书 Chrome URL 被拒绝、`E4` 解析为 row 4/column 5、非图片文本被拒绝。
-- [ ] 运行 `xcodebuild -project ImagePeek.xcodeproj -scheme ImagePeek -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:ImagePeekTests/SpreadsheetCoreTests`，确认类型缺失导致失败。
-- [ ] 最小实现 `SpreadsheetApp.feishuChrome`、`WebSheetURLPolicy.isSupported(_:)`、`A1CellReference.parse(_:)` 和 `WebSheetAdapter` 的 Accessibility 值提取接口；输出现有 `CellContext`。
-- [ ] 重跑目标测试，确认通过；提交 `feat: add Feishu web sheet adapter`。
+- [x] 写失败测试：飞书 Chrome URL 被接受、非飞书 Chrome URL 被拒绝、`E4` 解析为 row 4/column 5、非图片文本被拒绝。
+- [x] 运行目标测试确认类型缺失导致失败。
+- [x] 最小实现 `SpreadsheetApp.feishuChrome`、URL 安全边界、A1 解析和 Accessibility 值提取接口。
+- [x] 重跑目标测试并提交 `1d6850e`（后续运行时接入提交 `9aadaf0`）。
 
 ## 任务 2：运行时接入和安全选择策略
 
 **文件：** 修改 `ImagePeek/AppShell/ImagePeekApp.swift`、`ImagePeek/SpreadsheetEngine/ActiveAppDetector.swift`、`ImagePeekTests/SpreadsheetCoreTests.swift`。
 
-- [ ] 写失败测试：前台飞书 Chrome 的鼠标释放和方向键释放触发读取；离开 Chrome 或 URL 不匹配时隐藏预览。
-- [ ] 运行 SpreadsheetCoreTests，确认失败。
-- [ ] 注入 `WebSheetAdapter` 到 `PreviewRuntimeController`；仅 `.feishuChrome` 调用它；保留 WPS/Excel 原有分支。无 frame 时传既有鼠标回退点。
-- [ ] 重跑目标测试和完整 XCTest；提交 `feat: preview Feishu sheet image cells`。
+- [x] 写失败测试并验证选择事件策略。
+- [x] 注入 `WebSheetAdapter` 到 `PreviewRuntimeController`；仅 `.feishuChrome` 调用它。
+- [x] 重跑目标测试和完整 XCTest；运行时接入提交 `9aadaf0`。
+- [x] 修复真实辅助功能树遍历顺序与 A1 溢出边界，提交 `aca2a1e`、`448cf7e`。
 
 ## 任务 3：真实 Chrome 回归与交付
 
 **文件：** 修改 `README.md`、`docs/superpowers/plans/2026-08-25-imagepeek-feishu-accessibility.md`。
 
-- [ ] 构建 Release：`xcodebuild -project ImagePeek.xcodeproj -scheme ImagePeek -configuration Release CODE_SIGNING_ALLOWED=NO build`。
-- [ ] 在用户真实飞书表格中验证鼠标点击/方向键、退出飞书隐藏预览、Esc/Space/⌥C/⌥O/⌥P；不通过则停止并进行系统化调试。
-- [ ] 记录人工验证结论、更新 README 平台范围、提交并推送。
+- [x] 构建 Release：已验证无签名 Release 构建通过。
+- [x] 用户在真实飞书表格中确认图片预览可用；辅助功能诊断曾定位并修复地址与 URL 配对问题。
+- [x] 更新 README 平台范围并推送；发布签名仍受 Apple Developer 注册状态限制。

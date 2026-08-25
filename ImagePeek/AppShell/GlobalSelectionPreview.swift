@@ -6,15 +6,57 @@ struct GlobalSelectedTextSnapshot: Equatable {
     let text: String
 }
 
+enum GlobalSelectionReadStatus: Equatable {
+    case idle
+    case waiting
+    case accessibilityRequired
+    case noFrontmostApplication
+    case noFocusedElement
+    case noSelectedText
+    case invalidImageURL
+    case selectionChanged
+    case ready
+
+    var message: String {
+        switch self {
+        case .idle:
+            return "No selection checked yet."
+        case .waiting:
+            return "Waiting for the selected text to settle."
+        case .accessibilityRequired:
+            return "Accessibility permission is required."
+        case .noFrontmostApplication:
+            return "No frontmost application was found."
+        case .noFocusedElement:
+            return "No focused text element was exposed."
+        case .noSelectedText:
+            return "The focused element exposed no selected text."
+        case .invalidImageURL:
+            return "Selected text is not an image URL."
+        case .selectionChanged:
+            return "Selection changed before previewing."
+        case .ready:
+            return "Image previewed from the selected URL."
+        }
+    }
+}
+
+enum GlobalSelectedTextReadResult {
+    case success(GlobalSelectedTextSnapshot)
+    case failure(GlobalSelectionReadStatus)
+}
+
 protocol GlobalSelectedTextReading {
-    func selectedTextSnapshot() -> GlobalSelectedTextSnapshot?
+    func selectedTextSnapshot() -> GlobalSelectedTextReadResult
 }
 
 struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
-    func selectedTextSnapshot() -> GlobalSelectedTextSnapshot? {
-        guard AXIsProcessTrusted(),
-              let application = NSWorkspace.shared.frontmostApplication else {
-            return nil
+    func selectedTextSnapshot() -> GlobalSelectedTextReadResult {
+        guard AXIsProcessTrusted() else {
+            return .failure(.accessibilityRequired)
+        }
+        guard let application = NSWorkspace.shared.frontmostApplication else {
+            return .failure(.noFrontmostApplication)
         }
 
         let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
@@ -26,7 +68,7 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
         ) == .success,
         let focusedValue,
         CFGetTypeID(focusedValue) == AXUIElementGetTypeID() else {
-            return nil
+            return .failure(.noFocusedElement)
         }
 
         let focusedElement = unsafeBitCast(focusedValue, to: AXUIElement.self)
@@ -38,10 +80,10 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
         ) == .success,
         let text = (selectedTextValue as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
         !text.isEmpty else {
-            return nil
+            return .failure(.noSelectedText)
         }
 
-        return GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text)
+        return .success(GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text))
     }
 }
 

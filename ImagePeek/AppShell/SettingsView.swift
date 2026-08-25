@@ -116,6 +116,7 @@ struct SettingsView: View {
                 LabeledContent("Local images", value: "\(diagnostics.localLoadCount)")
                 LabeledContent("Failures", value: "\(diagnostics.failureCount)")
                 LabeledContent("Feishu Sheets", value: operationsStatusStore.webSheetReadStatus.message)
+                LabeledContent("Global selection", value: operationsStatusStore.globalSelectionReadStatus.message)
             }
         }
         .formStyle(.grouped)

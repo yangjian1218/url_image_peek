@@ -263,19 +263,36 @@ private final class PreviewRuntimeController {
         globalSelectionGeneration &+= 1
         let generation = globalSelectionGeneration
         let releasePoint = NSEvent.mouseLocation
+        operationsStatusStore.updateGlobalSelectionReadStatus(.waiting)
         globalSelectionPreviewTask?.cancel()
         globalSelectionPreviewTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(GlobalSelectionPreviewCoordinator.delay * 1_000_000_000))
+            guard let self else { return }
             guard !Task.isCancelled,
-                  let self,
                   generation == self.globalSelectionGeneration,
                   self.settingsStore.load().globalSelectionPreviewEnabled,
                   GlobalSelectionPreviewPolicy.shouldObserve(app: self.activeApplicationDetector.activeSpreadsheetApp()),
-                  NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleIdentifier,
-                  let selection = self.globalSelectedTextReader.selectedTextSnapshot(),
-                  selection.bundleIdentifier == bundleIdentifier,
-                  GlobalSelectionPreviewPolicy.isEligible(selectedText: selection.text),
+                  NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleIdentifier else {
+                self.operationsStatusStore.updateGlobalSelectionReadStatus(.selectionChanged)
+                return
+            }
+
+            let selection: GlobalSelectedTextSnapshot
+            switch self.globalSelectedTextReader.selectedTextSnapshot() {
+            case let .success(snapshot):
+                selection = snapshot
+            case let .failure(status):
+                self.operationsStatusStore.updateGlobalSelectionReadStatus(status)
+                return
+            }
+
+            guard selection.bundleIdentifier == bundleIdentifier else {
+                self.operationsStatusStore.updateGlobalSelectionReadStatus(.selectionChanged)
+                return
+            }
+            guard GlobalSelectionPreviewPolicy.isEligible(selectedText: selection.text),
                   let imageSource = ImageSourceResolver().resolve(selection.text) else {
+                self.operationsStatusStore.updateGlobalSelectionReadStatus(.invalidImageURL)
                 return
             }
 
@@ -302,6 +319,7 @@ private final class PreviewRuntimeController {
                 showsPixelDimensions: currentSettings.showsPixelDimensions,
                 loadSource: currentSettings.showsLoadSource ? loadedImage.source : nil
             )
+            self.operationsStatusStore.updateGlobalSelectionReadStatus(.ready)
         }
     }
 

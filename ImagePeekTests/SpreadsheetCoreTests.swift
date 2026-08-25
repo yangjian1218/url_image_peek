@@ -26,6 +26,12 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertFalse(GlobalSelectionPreviewEventPolicy.shouldSchedule(for: .keyReleased))
     }
 
+    func testGlobalSelectionReadStatusUsesPrivacySafeMessages() {
+        XCTAssertEqual(GlobalSelectionReadStatus.noFocusedElement.message, "No focused text element was exposed.")
+        XCTAssertEqual(GlobalSelectionReadStatus.noSelectedText.message, "The focused element exposed no selected text.")
+        XCTAssertEqual(GlobalSelectionReadStatus.invalidImageURL.message, "Selected text is not an image URL.")
+    }
+
     func testFeishuChromeURLPolicyAcceptsOnlyFeishuSheets() {
         XCTAssertTrue(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/sheets/abc")!))
         XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/docx/abc")!))

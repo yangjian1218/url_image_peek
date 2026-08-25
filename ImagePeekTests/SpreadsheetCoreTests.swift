@@ -2,6 +2,17 @@ import XCTest
 @testable import ImagePeek
 
 final class SpreadsheetCoreTests: XCTestCase {
+    func testFeishuChromeURLPolicyAcceptsOnlyFeishuSheets() {
+        XCTAssertTrue(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/sheets/abc")!))
+        XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/docx/abc")!))
+        XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://example.com/sheets/abc")!))
+    }
+
+    func testA1ReferenceParsesRowAndColumn() {
+        XCTAssertEqual(A1CellReference.parse("E4"), A1CellReference(row: 4, column: 5))
+        XCTAssertEqual(A1CellReference.parse("AA12"), A1CellReference(row: 12, column: 27))
+        XCTAssertNil(A1CellReference.parse("4E"))
+    }
     func testClassifiesInstalledWPSBundleIdentifier() {
         XCTAssertEqual(
             ActiveAppDetector.classify(bundleIdentifier: "com.kingsoft.wpsoffice.mac"),

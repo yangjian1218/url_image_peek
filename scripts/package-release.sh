@@ -24,5 +24,6 @@ xcodebuild \
 
 [[ -d "$task_app" ]] || { print -u2 "Missing Release app: $task_app"; exit 1; }
 
-ditto -c -k --keepParent "$task_app" "$task_archive"
+# Avoid AppleDouble metadata files in the distributable archive.
+ditto -c -k --keepParent --norsrc "$task_app" "$task_archive"
 print "Created unsigned archive: $task_archive"

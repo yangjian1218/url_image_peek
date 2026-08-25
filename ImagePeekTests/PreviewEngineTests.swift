@@ -74,6 +74,25 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(size.height, 520, accuracy: 0.0001)
     }
 
+    func testPreviewPanClampsBoundsOriginToScrollableContent() {
+        XCTAssertEqual(
+            PreviewPan.clampedOrigin(
+                CGPoint(x: -30, y: 500),
+                contentSize: CGSize(width: 900, height: 700),
+                viewportSize: CGSize(width: 320, height: 260)
+            ),
+            CGPoint(x: 0, y: 440)
+        )
+        XCTAssertEqual(
+            PreviewPan.clampedOrigin(
+                CGPoint(x: 999, y: -10),
+                contentSize: CGSize(width: 900, height: 700),
+                viewportSize: CGSize(width: 320, height: 260)
+            ),
+            CGPoint(x: 580, y: 0)
+        )
+    }
+
     func testPreviewImageInfoFormatsPixelDimensions() {
         XCTAssertEqual(PreviewImageInfo.pixelSizeText(for: CGSize(width: 900, height: 1200)), "900 × 1200 px")
     }

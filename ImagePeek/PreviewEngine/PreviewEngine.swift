@@ -85,6 +85,19 @@ enum PreviewScrollPolicy {
     }
 }
 
+enum PreviewPan {
+    static func clampedOrigin(
+        _ origin: CGPoint,
+        contentSize: CGSize,
+        viewportSize: CGSize
+    ) -> CGPoint {
+        CGPoint(
+            x: min(max(origin.x, 0), max(0, contentSize.width - viewportSize.width)),
+            y: min(max(origin.y, 0), max(0, contentSize.height - viewportSize.height))
+        )
+    }
+}
+
 enum PreviewImageLayout {
     static func displaySize(imageSize: CGSize, availableSize: CGSize, zoom: CGFloat) -> CGSize {
         guard imageSize.width > 0, imageSize.height > 0 else { return availableSize }
@@ -235,6 +248,7 @@ final class PreviewPanelController {
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.imageAlignment = .alignCenter
         imageView.onZoom = { [weak self] scale in self?.applyZoom(scale) }
+        imageView.onPan = { [weak self] delta in self?.panImage(by: delta) }
         scrollView.documentView = imageView
 
         imageInfoLabel.alignment = .center
@@ -350,6 +364,19 @@ final class PreviewPanelController {
         )
     }
 
+    private func panImage(by delta: CGPoint) {
+        guard imageView.zoomScale > 1 else { return }
+        let clipView = scrollView.contentView
+        let currentOrigin = clipView.bounds.origin
+        let targetOrigin = PreviewPan.clampedOrigin(
+            CGPoint(x: currentOrigin.x - delta.x, y: currentOrigin.y - delta.y),
+            contentSize: imageView.bounds.size,
+            viewportSize: clipView.bounds.size
+        )
+        clipView.setBoundsOrigin(targetOrigin)
+        scrollView.reflectScrolledClipView(clipView)
+    }
+
     private func pixelSize(of image: NSImage) -> CGSize {
         if let representation = image.representations.compactMap({ $0 as? NSBitmapImageRep }).first,
            representation.pixelsWide > 0,
@@ -384,6 +411,30 @@ final class PreviewPanelController {
 private final class ZoomableImageView: NSImageView {
     var zoomScale: CGFloat = 1
     var onZoom: ((CGFloat) -> Void)?
+    var onPan: ((CGPoint) -> Void)?
+    private var lastDragPoint: CGPoint?
+
+    override func mouseDown(with event: NSEvent) {
+        guard zoomScale > 1 else {
+            super.mouseDown(with: event)
+            return
+        }
+        lastDragPoint = convert(event.locationInWindow, from: nil)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard zoomScale > 1,
+              let lastDragPoint else { return }
+        let currentPoint = convert(event.locationInWindow, from: nil)
+        onPan?(CGPoint(x: currentPoint.x - lastDragPoint.x, y: currentPoint.y - lastDragPoint.y))
+        self.lastDragPoint = currentPoint
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        lastDragPoint = nil
+        guard zoomScale <= 1 else { return }
+        super.mouseUp(with: event)
+    }
 
     override func scrollWheel(with event: NSEvent) {
         guard event.scrollingDeltaY != 0 else {

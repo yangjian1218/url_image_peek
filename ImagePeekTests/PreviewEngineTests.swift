@@ -93,6 +93,18 @@ final class PreviewEngineTests: XCTestCase {
         )
     }
 
+    func testPreviewPanUsesWindowDragDeltaWithoutCoordinateDrift() {
+        XCTAssertEqual(
+            PreviewPan.originAfterDrag(
+                currentOrigin: CGPoint(x: 120, y: 80),
+                dragDelta: CGPoint(x: 30, y: -20),
+                contentSize: CGSize(width: 900, height: 700),
+                viewportSize: CGSize(width: 320, height: 260)
+            ),
+            CGPoint(x: 90, y: 100)
+        )
+    }
+
     func testPreviewImageInfoFormatsPixelDimensions() {
         XCTAssertEqual(PreviewImageInfo.pixelSizeText(for: CGSize(width: 900, height: 1200)), "900 × 1200 px")
     }

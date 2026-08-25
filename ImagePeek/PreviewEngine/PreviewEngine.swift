@@ -96,6 +96,19 @@ enum PreviewPan {
             y: min(max(origin.y, 0), max(0, contentSize.height - viewportSize.height))
         )
     }
+
+    static func originAfterDrag(
+        currentOrigin: CGPoint,
+        dragDelta: CGPoint,
+        contentSize: CGSize,
+        viewportSize: CGSize
+    ) -> CGPoint {
+        clampedOrigin(
+            CGPoint(x: currentOrigin.x - dragDelta.x, y: currentOrigin.y - dragDelta.y),
+            contentSize: contentSize,
+            viewportSize: viewportSize
+        )
+    }
 }
 
 enum PreviewImageLayout {
@@ -368,8 +381,9 @@ final class PreviewPanelController {
         guard imageView.zoomScale > 1 else { return }
         let clipView = scrollView.contentView
         let currentOrigin = clipView.bounds.origin
-        let targetOrigin = PreviewPan.clampedOrigin(
-            CGPoint(x: currentOrigin.x - delta.x, y: currentOrigin.y - delta.y),
+        let targetOrigin = PreviewPan.originAfterDrag(
+            currentOrigin: currentOrigin,
+            dragDelta: delta,
             contentSize: imageView.bounds.size,
             viewportSize: clipView.bounds.size
         )
@@ -412,26 +426,29 @@ private final class ZoomableImageView: NSImageView {
     var zoomScale: CGFloat = 1
     var onZoom: ((CGFloat) -> Void)?
     var onPan: ((CGPoint) -> Void)?
-    private var lastDragPoint: CGPoint?
+    private var lastDragPointInWindow: CGPoint?
 
     override func mouseDown(with event: NSEvent) {
         guard zoomScale > 1 else {
             super.mouseDown(with: event)
             return
         }
-        lastDragPoint = convert(event.locationInWindow, from: nil)
+        lastDragPointInWindow = event.locationInWindow
     }
 
     override func mouseDragged(with event: NSEvent) {
         guard zoomScale > 1,
-              let lastDragPoint else { return }
-        let currentPoint = convert(event.locationInWindow, from: nil)
-        onPan?(CGPoint(x: currentPoint.x - lastDragPoint.x, y: currentPoint.y - lastDragPoint.y))
-        self.lastDragPoint = currentPoint
+              let lastDragPointInWindow else { return }
+        let currentPointInWindow = event.locationInWindow
+        onPan?(CGPoint(
+            x: currentPointInWindow.x - lastDragPointInWindow.x,
+            y: currentPointInWindow.y - lastDragPointInWindow.y
+        ))
+        self.lastDragPointInWindow = currentPointInWindow
     }
 
     override func mouseUp(with event: NSEvent) {
-        lastDragPoint = nil
+        lastDragPointInWindow = nil
         guard zoomScale <= 1 else { return }
         super.mouseUp(with: event)
     }

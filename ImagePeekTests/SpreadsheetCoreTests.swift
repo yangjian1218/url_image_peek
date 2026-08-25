@@ -366,6 +366,12 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .mouseReleased, app: .feishuChrome))
         XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyReleased(125), app: .feishuChrome))
     }
+
+    func testPollingPolicyAvoidsRepeatedAccessibilityTreeReadsForFeishu() {
+        XCTAssertTrue(SpreadsheetPollingPolicy.shouldPollContinuously(app: .wps))
+        XCTAssertTrue(SpreadsheetPollingPolicy.shouldPollContinuously(app: .excel))
+        XCTAssertFalse(SpreadsheetPollingPolicy.shouldPollContinuously(app: .feishuChrome))
+    }
 }
 
 private struct FakeActiveApplicationDetector: ActiveApplicationDetecting {

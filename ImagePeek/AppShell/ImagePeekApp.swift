@@ -139,12 +139,15 @@ private final class PreviewRuntimeController {
             return
         }
 
-        if lastActiveApp != app {
+        let appChanged = lastActiveApp != app
+        if appChanged {
             lastActiveApp = app
             if app == .wps { scheduleWPSClipboardRead() }
         }
 
-        requestCurrentCellRead(for: app)
+        if appChanged || SpreadsheetPollingPolicy.shouldPollContinuously(app: app) {
+            requestCurrentCellRead(for: app)
+        }
     }
 
     private func requestCurrentCellRead(for app: SpreadsheetApp) {

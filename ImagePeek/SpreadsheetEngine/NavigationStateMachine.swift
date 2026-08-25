@@ -64,6 +64,12 @@ enum SpreadsheetSelectionTriggerPolicy {
     }
 }
 
+enum SpreadsheetPollingPolicy {
+    static func shouldPollContinuously(app: SpreadsheetApp) -> Bool {
+        app != .feishuChrome
+    }
+}
+
 enum NavigationState: Equatable {
     case inactive
     case awaitingCellRead(app: SpreadsheetApp)

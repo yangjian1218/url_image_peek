@@ -93,9 +93,9 @@ struct A1CellReference: Equatable, Sendable {
     let column: Int
 
     static func parse(_ value: String) -> A1CellReference? {
-        let letters = value.prefix { $0.isLetter }
+        let letters = value.prefix { $0.isASCII && $0.isLetter }
         let digits = value.dropFirst(letters.count)
-        guard !letters.isEmpty,
+        guard (1...3).contains(letters.count),
               !digits.isEmpty,
               let row = Int(digits),
               row > 0,

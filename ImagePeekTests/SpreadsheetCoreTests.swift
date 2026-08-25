@@ -14,6 +14,10 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertNil(A1CellReference.parse("4E"))
     }
 
+    func testA1ReferenceRejectsLongAlphabeticPageTextWithoutOverflowing() {
+        XCTAssertNil(A1CellReference.parse(String(repeating: "U", count: 80) + "1"))
+    }
+
     func testWebSheetSnapshotParserPairsFocusedAddressWithFollowingImageURL() {
         let snapshot = WebSheetAccessibilitySnapshotParser.snapshot(from: [
             "zhijing19.feishu.cn/sheets/abc",

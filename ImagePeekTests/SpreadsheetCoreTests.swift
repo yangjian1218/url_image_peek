@@ -2,6 +2,30 @@ import XCTest
 @testable import ImagePeek
 
 final class SpreadsheetCoreTests: XCTestCase {
+    func testGlobalSelectionPolicyAcceptsOnlyOneResolvableImageURL() {
+        XCTAssertTrue(GlobalSelectionPreviewPolicy.isEligible(selectedText: " https://example.com/image.png "))
+        XCTAssertFalse(GlobalSelectionPreviewPolicy.isEligible(selectedText: "look https://example.com/image.png"))
+        XCTAssertFalse(GlobalSelectionPreviewPolicy.isEligible(selectedText: ""))
+    }
+
+    func testGlobalSelectionPolicyExcludesSupportedSpreadsheetApps() {
+        XCTAssertFalse(GlobalSelectionPreviewPolicy.shouldObserve(app: .wps))
+        XCTAssertFalse(GlobalSelectionPreviewPolicy.shouldObserve(app: .excel))
+        XCTAssertTrue(GlobalSelectionPreviewPolicy.shouldObserve(app: .feishuChrome))
+        XCTAssertTrue(GlobalSelectionPreviewPolicy.shouldObserve(app: nil))
+    }
+
+    func testGlobalSelectionCoordinatorUsesOneSecondDelay() {
+        XCTAssertEqual(GlobalSelectionPreviewCoordinator.delay, 1)
+    }
+
+    func testGlobalSelectionEventPolicySchedulesOnMouseUpAndCancelsOnPointerMove() {
+        XCTAssertTrue(GlobalSelectionPreviewEventPolicy.shouldSchedule(for: .mouseReleased))
+        XCTAssertTrue(GlobalSelectionPreviewEventPolicy.shouldCancel(for: .pointerMoved))
+        XCTAssertTrue(GlobalSelectionPreviewEventPolicy.shouldCancel(for: .mousePressed))
+        XCTAssertFalse(GlobalSelectionPreviewEventPolicy.shouldSchedule(for: .keyReleased))
+    }
+
     func testFeishuChromeURLPolicyAcceptsOnlyFeishuSheets() {
         XCTAssertTrue(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/sheets/abc")!))
         XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/docx/abc")!))

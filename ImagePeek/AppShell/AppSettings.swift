@@ -9,6 +9,7 @@ struct ImagePeekSettings: Codable, Equatable {
     var wpsClipboardFallback = true
     var showsPixelDimensions = true
     var showsLoadSource = false
+    var globalSelectionPreviewEnabled = false
     var cacheSizeGiB = 1
     var cacheRetentionDays = 30
 
@@ -28,6 +29,7 @@ struct ImagePeekSettings: Codable, Equatable {
         case wpsClipboardFallback
         case showsPixelDimensions
         case showsLoadSource
+        case globalSelectionPreviewEnabled
         case cacheSizeGiB
         case cacheRetentionDays
     }
@@ -39,6 +41,7 @@ struct ImagePeekSettings: Codable, Equatable {
         wpsClipboardFallback: Bool = true,
         showsPixelDimensions: Bool = true,
         showsLoadSource: Bool = false,
+        globalSelectionPreviewEnabled: Bool = false,
         cacheSizeGiB: Int = 1,
         cacheRetentionDays: Int = 30
     ) {
@@ -48,6 +51,7 @@ struct ImagePeekSettings: Codable, Equatable {
         self.wpsClipboardFallback = wpsClipboardFallback
         self.showsPixelDimensions = showsPixelDimensions
         self.showsLoadSource = showsLoadSource
+        self.globalSelectionPreviewEnabled = globalSelectionPreviewEnabled
         self.cacheSizeGiB = cacheSizeGiB
         self.cacheRetentionDays = cacheRetentionDays
     }
@@ -60,6 +64,7 @@ struct ImagePeekSettings: Codable, Equatable {
         wpsClipboardFallback = try container.decodeIfPresent(Bool.self, forKey: .wpsClipboardFallback) ?? true
         showsPixelDimensions = try container.decodeIfPresent(Bool.self, forKey: .showsPixelDimensions) ?? true
         showsLoadSource = try container.decodeIfPresent(Bool.self, forKey: .showsLoadSource) ?? false
+        globalSelectionPreviewEnabled = try container.decodeIfPresent(Bool.self, forKey: .globalSelectionPreviewEnabled) ?? false
         cacheSizeGiB = try container.decodeIfPresent(Int.self, forKey: .cacheSizeGiB) ?? 1
         cacheRetentionDays = try container.decodeIfPresent(Int.self, forKey: .cacheRetentionDays) ?? 30
     }

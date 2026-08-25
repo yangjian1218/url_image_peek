@@ -239,6 +239,12 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(settings.cachePolicy.maximumAge, 30 * 24 * 60 * 60)
     }
 
+    func testSettingsDecodeDefaultsGlobalSelectionPreviewToDisabled() throws {
+        let settings = try JSONDecoder().decode(ImagePeekSettings.self, from: Data("{}".utf8))
+
+        XCTAssertFalse(settings.globalSelectionPreviewEnabled)
+    }
+
     func testDiagnosticsDoesNotCountCancellationAsFailure() {
         var diagnostics = RuntimeDiagnostics()
 

@@ -44,6 +44,8 @@ private final class PreviewRuntimeController {
     private let excelAdapter: ExcelAdapter
     private let webSheetAdapter: WebSheetAdapter
     private let panelController: PreviewPanelController
+    private let globalSelectionPanelController: PreviewPanelController
+    private let globalSelectedTextReader: GlobalSelectedTextReading
     private let remoteImageLoader: RemoteImageLoader
     private let settingsStore: SettingsStore
     private let operationsStatusStore: OperationsStatusStore
@@ -66,6 +68,9 @@ private final class PreviewRuntimeController {
     private var displayGeneration = 0
     private var isReadingCurrentCell = false
     private var hasPendingCellRead = false
+    private var globalSelectionPreviewTask: Task<Void, Never>?
+    private var globalSelectionGeneration = 0
+    private var globalSelectionPreviewBundleIdentifier: String?
 
     init(
         settingsStore: SettingsStore,
@@ -74,6 +79,8 @@ private final class PreviewRuntimeController {
         excelAdapter: ExcelAdapter = ExcelAdapter(),
         webSheetAdapter: WebSheetAdapter = WebSheetAdapter(),
         panelController: PreviewPanelController = PreviewPanelController(),
+        globalSelectionPanelController: PreviewPanelController = PreviewPanelController(),
+        globalSelectedTextReader: GlobalSelectedTextReading = SystemGlobalSelectedTextReader(),
         remoteImageLoader: RemoteImageLoader = RemoteImageLoader(),
         operationsStatusStore: OperationsStatusStore
     ) {
@@ -82,6 +89,8 @@ private final class PreviewRuntimeController {
         self.excelAdapter = excelAdapter
         self.webSheetAdapter = webSheetAdapter
         self.panelController = panelController
+        self.globalSelectionPanelController = globalSelectionPanelController
+        self.globalSelectedTextReader = globalSelectedTextReader
         self.remoteImageLoader = remoteImageLoader
         self.settingsStore = settingsStore
         self.operationsStatusStore = operationsStatusStore
@@ -92,7 +101,7 @@ private final class PreviewRuntimeController {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
             self?.poll()
         }
-        selectionEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .keyUp]) { [weak self] event in
+        selectionEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .leftMouseDown, .leftMouseDragged, .mouseMoved, .keyUp]) { [weak self] event in
             Task { @MainActor [weak self] in
                 self?.handleSelectionEvent(event)
             }
@@ -129,6 +138,7 @@ private final class PreviewRuntimeController {
     }
 
     private func poll() {
+        refreshGlobalSelectionPreviewVisibility()
         guard settingsStore.load().automaticPreview,
               let app = activeApplicationDetector.activeSpreadsheetApp() else {
             readGeneration &+= 1
@@ -192,6 +202,8 @@ private final class PreviewRuntimeController {
     }
 
     private func handleSelectionEvent(_ event: NSEvent) {
+        handleGlobalSelectionEvent(event)
+
         let input: WPSSelectionInput
         switch event.type {
         case .leftMouseUp:
@@ -211,6 +223,108 @@ private final class PreviewRuntimeController {
                   let activeApp {
             dismissedContext = nil
             requestCurrentCellRead(for: activeApp)
+        }
+    }
+
+    private func handleGlobalSelectionEvent(_ event: NSEvent) {
+        let globalEvent: GlobalSelectionPreviewEvent
+        switch event.type {
+        case .leftMouseUp:
+            globalEvent = .mouseReleased
+        case .leftMouseDown:
+            globalEvent = .mousePressed
+        case .leftMouseDragged:
+            globalEvent = .pointerDragged
+        case .mouseMoved:
+            globalEvent = .pointerMoved
+        case .keyUp:
+            globalEvent = .keyReleased
+        default:
+            return
+        }
+
+        let settings = settingsStore.load()
+        guard settings.globalSelectionPreviewEnabled,
+              GlobalSelectionPreviewPolicy.shouldObserve(app: activeApplicationDetector.activeSpreadsheetApp()) else {
+            cancelGlobalSelectionPreview(hide: true)
+            return
+        }
+
+        if GlobalSelectionPreviewEventPolicy.shouldCancel(for: globalEvent) {
+            cancelGlobalSelectionPreview(hide: true)
+            return
+        }
+
+        guard GlobalSelectionPreviewEventPolicy.shouldSchedule(for: globalEvent),
+              let bundleIdentifier = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else {
+            return
+        }
+
+        globalSelectionGeneration &+= 1
+        let generation = globalSelectionGeneration
+        let releasePoint = NSEvent.mouseLocation
+        globalSelectionPreviewTask?.cancel()
+        globalSelectionPreviewTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(GlobalSelectionPreviewCoordinator.delay * 1_000_000_000))
+            guard !Task.isCancelled,
+                  let self,
+                  generation == self.globalSelectionGeneration,
+                  self.settingsStore.load().globalSelectionPreviewEnabled,
+                  GlobalSelectionPreviewPolicy.shouldObserve(app: self.activeApplicationDetector.activeSpreadsheetApp()),
+                  NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleIdentifier,
+                  let selection = self.globalSelectedTextReader.selectedTextSnapshot(),
+                  selection.bundleIdentifier == bundleIdentifier,
+                  GlobalSelectionPreviewPolicy.isEligible(selectedText: selection.text),
+                  let imageSource = ImageSourceResolver().resolve(selection.text) else {
+                return
+            }
+
+            let request: PreviewRequest
+            switch imageSource {
+            case let .remote(url):
+                request = .remote(url)
+            case let .local(url):
+                request = .local(url)
+            }
+
+            guard let loadedImage = await self.image(for: request),
+                  generation == self.globalSelectionGeneration,
+                  NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleIdentifier else {
+                return
+            }
+
+            self.globalSelectionPreviewBundleIdentifier = bundleIdentifier
+            let currentSettings = self.settingsStore.load()
+            self.globalSelectionPanelController.show(
+                image: loadedImage.image,
+                cellFrame: nil,
+                fallbackPoint: releasePoint,
+                showsPixelDimensions: currentSettings.showsPixelDimensions,
+                loadSource: currentSettings.showsLoadSource ? loadedImage.source : nil
+            )
+        }
+    }
+
+    private func refreshGlobalSelectionPreviewVisibility() {
+        guard settingsStore.load().globalSelectionPreviewEnabled,
+              GlobalSelectionPreviewPolicy.shouldObserve(app: activeApplicationDetector.activeSpreadsheetApp()) else {
+            cancelGlobalSelectionPreview(hide: true)
+            return
+        }
+
+        if let globalSelectionPreviewBundleIdentifier,
+           NSWorkspace.shared.frontmostApplication?.bundleIdentifier != globalSelectionPreviewBundleIdentifier {
+            cancelGlobalSelectionPreview(hide: true)
+        }
+    }
+
+    private func cancelGlobalSelectionPreview(hide: Bool) {
+        globalSelectionGeneration &+= 1
+        globalSelectionPreviewTask?.cancel()
+        globalSelectionPreviewTask = nil
+        globalSelectionPreviewBundleIdentifier = nil
+        if hide {
+            globalSelectionPanelController.hide()
         }
     }
 
@@ -292,6 +406,7 @@ private final class PreviewRuntimeController {
         if let selectionEventMonitor {
             NSEvent.removeMonitor(selectionEventMonitor)
         }
+        globalSelectionPreviewTask?.cancel()
     }
 
     private func handle(_ shortcut: PreviewShortcut) {

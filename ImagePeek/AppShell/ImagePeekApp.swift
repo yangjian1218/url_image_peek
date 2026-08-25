@@ -256,13 +256,15 @@ private final class PreviewRuntimeController {
         }
 
         guard GlobalSelectionPreviewEventPolicy.shouldSchedule(for: globalEvent),
-              let bundleIdentifier = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else {
+              let frontmostApplication = NSWorkspace.shared.frontmostApplication,
+              let bundleIdentifier = frontmostApplication.bundleIdentifier else {
             return
         }
 
         globalSelectionGeneration &+= 1
         let generation = globalSelectionGeneration
         let releasePoint = NSEvent.mouseLocation
+        let frontmostApplicationName = frontmostApplication.localizedName ?? bundleIdentifier
         operationsStatusStore.updateGlobalSelectionReadStatus(.waiting)
         globalSelectionPreviewTask?.cancel()
         globalSelectionPreviewTask = Task { [weak self] in
@@ -271,9 +273,17 @@ private final class PreviewRuntimeController {
             guard !Task.isCancelled,
                   generation == self.globalSelectionGeneration,
                   self.settingsStore.load().globalSelectionPreviewEnabled,
-                  GlobalSelectionPreviewPolicy.shouldObserve(app: self.activeApplicationDetector.activeSpreadsheetApp()),
-                  NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleIdentifier else {
+                  GlobalSelectionPreviewPolicy.shouldObserve(app: self.activeApplicationDetector.activeSpreadsheetApp()) else {
                 self.operationsStatusStore.updateGlobalSelectionReadStatus(.selectionChanged)
+                return
+            }
+            guard NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleIdentifier else {
+                let currentApplicationName = NSWorkspace.shared.frontmostApplication?.localizedName
+                    ?? NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+                    ?? "Unknown"
+                self.operationsStatusStore.updateGlobalSelectionReadStatus(
+                    .frontmostApplicationChanged(from: frontmostApplicationName, to: currentApplicationName)
+                )
                 return
             }
 

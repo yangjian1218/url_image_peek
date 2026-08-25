@@ -30,6 +30,10 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(GlobalSelectionReadStatus.noFocusedElement.message, "No focused text element was exposed.")
         XCTAssertEqual(GlobalSelectionReadStatus.noSelectedText.message, "The focused element exposed no selected text.")
         XCTAssertEqual(GlobalSelectionReadStatus.invalidImageURL.message, "Selected text is not an image URL.")
+        XCTAssertEqual(
+            GlobalSelectionReadStatus.frontmostApplicationChanged(from: "WeChat", to: "WeChat Helper").message,
+            "Frontmost app changed from WeChat to WeChat Helper."
+        )
     }
 
     func testGlobalSelectionTextSearchUsesFirstNonEmptyAccessibleSelection() {

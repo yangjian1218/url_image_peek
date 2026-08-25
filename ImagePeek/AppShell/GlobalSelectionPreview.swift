@@ -15,6 +15,7 @@ enum GlobalSelectionReadStatus: Equatable {
     case noSelectedText
     case invalidImageURL
     case selectionChanged
+    case frontmostApplicationChanged(from: String, to: String)
     case ready
 
     var message: String {
@@ -35,6 +36,8 @@ enum GlobalSelectionReadStatus: Equatable {
             return "Selected text is not an image URL."
         case .selectionChanged:
             return "Selection changed before previewing."
+        case let .frontmostApplicationChanged(from, to):
+            return "Frontmost app changed from \(from) to \(to)."
         case .ready:
             return "Image previewed from the selected URL."
         }
@@ -94,6 +97,9 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             let text = GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String]) {
                 return text
             }
+            if let text = selectedTextForRange(from: element) {
+                return text
+            }
 
             var childrenValue: CFTypeRef?
             if AXUIElementCopyAttributeValue(
@@ -106,6 +112,31 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             }
         }
         return nil
+    }
+
+    private func selectedTextForRange(from element: AXUIElement) -> String? {
+        var selectedRangeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXSelectedTextRangeAttribute as CFString,
+            &selectedRangeValue
+        ) == .success,
+        let selectedRangeValue,
+        CFGetTypeID(selectedRangeValue) == AXValueGetTypeID(),
+        AXValueGetType(unsafeBitCast(selectedRangeValue, to: AXValue.self)) == .cfRange else {
+            return nil
+        }
+
+        var selectedTextValue: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            element,
+            kAXStringForRangeParameterizedAttribute as CFString,
+            selectedRangeValue,
+            &selectedTextValue
+        ) == .success else {
+            return nil
+        }
+        return GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String])
     }
 
     private func accessibilityElements(from value: CFTypeRef) -> [AXUIElement] {

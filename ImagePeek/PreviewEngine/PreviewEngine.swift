@@ -95,12 +95,20 @@ enum PreviewImageLayout {
 }
 
 enum PreviewImageInfo {
+    static let captionBottomInset: CGFloat = 28
+    static let captionBackgroundOpacity: CGFloat = 0.42
+
     static func pixelSizeText(for size: CGSize) -> String {
         "\(Int(size.width.rounded())) × \(Int(size.height.rounded())) px"
     }
 
     static func captionFrame(containerSize: CGSize) -> CGRect {
-        CGRect(x: 8, y: 8, width: max(0, containerSize.width - 16), height: 20)
+        CGRect(
+            x: 8,
+            y: captionBottomInset,
+            width: max(0, containerSize.width - 16),
+            height: 20
+        )
     }
 
     static func captionText(
@@ -233,7 +241,9 @@ final class PreviewPanelController {
         imageInfoLabel.textColor = .white
         imageInfoLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         imageInfoLabel.wantsLayer = true
-        imageInfoLabel.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.62).cgColor
+        imageInfoLabel.layer?.backgroundColor = NSColor.black
+            .withAlphaComponent(PreviewImageInfo.captionBackgroundOpacity)
+            .cgColor
         imageInfoLabel.layer?.cornerRadius = 4
         imageInfoLabel.frame = PreviewImageInfo.captionFrame(containerSize: panelSize)
 

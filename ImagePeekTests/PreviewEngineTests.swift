@@ -78,11 +78,12 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertEqual(PreviewImageInfo.pixelSizeText(for: CGSize(width: 900, height: 1200)), "900 × 1200 px")
     }
 
-    func testPreviewImageInfoPlacesCaptionInsideBottomOfPanel() {
+    func testPreviewImageInfoPlacesCaptionAboveTheScrollerArea() {
         XCTAssertEqual(
             PreviewImageInfo.captionFrame(containerSize: CGSize(width: 320, height: 480)),
-            CGRect(x: 8, y: 8, width: 304, height: 20)
+            CGRect(x: 8, y: 28, width: 304, height: 20)
         )
+        XCTAssertEqual(PreviewImageInfo.captionBackgroundOpacity, 0.42)
     }
 
     func testPreviewCaptionCombinesConfiguredPixelSizeAndSource() {

@@ -9,11 +9,32 @@ struct WebSheetCellSnapshot: Equatable, Sendable {
 }
 
 protocol WebSheetAccessibilityClient {
+    var lastReadStatus: WebSheetReadStatus { get }
     func isTrusted() -> Bool
     func currentCellSnapshot() -> WebSheetCellSnapshot?
 }
 
-struct SystemWebSheetAccessibilityClient: WebSheetAccessibilityClient {
+enum WebSheetReadStatus: Equatable, Sendable {
+    case idle
+    case unsupportedPage
+    case missingCellAddress
+    case missingImageURL
+    case matched(address: String)
+
+    var message: String {
+        switch self {
+        case .idle: return "Waiting for a Chrome Feishu sheet cell."
+        case .unsupportedPage: return "Chrome is not on a supported Feishu sheet."
+        case .missingCellAddress: return "Feishu cell address was not exposed by Accessibility."
+        case .missingImageURL: return "No image URL was found for the focused Feishu cell."
+        case let .matched(address): return "Read Feishu cell \(address)."
+        }
+    }
+}
+
+final class SystemWebSheetAccessibilityClient: WebSheetAccessibilityClient {
+    private(set) var lastReadStatus: WebSheetReadStatus = .idle
+
     func isTrusted() -> Bool {
         AXIsProcessTrusted()
     }
@@ -21,11 +42,14 @@ struct SystemWebSheetAccessibilityClient: WebSheetAccessibilityClient {
     func currentCellSnapshot() -> WebSheetCellSnapshot? {
         guard let frontmostApplication = NSWorkspace.shared.frontmostApplication,
               frontmostApplication.bundleIdentifier?.lowercased() == "com.google.chrome" else {
+            lastReadStatus = .unsupportedPage
             return nil
         }
 
         let applicationElement = AXUIElementCreateApplication(frontmostApplication.processIdentifier)
-        return WebSheetAccessibilitySnapshotParser.snapshot(from: collectStrings(from: applicationElement))
+        let result = WebSheetAccessibilitySnapshotParser.result(from: collectStrings(from: applicationElement))
+        lastReadStatus = result.status
+        return result.snapshot
     }
 
     private func collectStrings(from root: AXUIElement) -> [String] {
@@ -66,18 +90,31 @@ struct SystemWebSheetAccessibilityClient: WebSheetAccessibilityClient {
 }
 
 enum WebSheetAccessibilitySnapshotParser {
+    struct Result {
+        let snapshot: WebSheetCellSnapshot?
+        let status: WebSheetReadStatus
+    }
+
     static func snapshot(from strings: [String]) -> WebSheetCellSnapshot? {
+        result(from: strings).snapshot
+    }
+
+    static func result(from strings: [String]) -> Result {
         guard let pageURL = strings.lazy.compactMap(normalizedPageURL).first(where: WebSheetURLPolicy.isSupported) else {
-            return nil
+            return Result(snapshot: nil, status: .unsupportedPage)
         }
 
         for (index, value) in strings.enumerated() where A1CellReference.parse(value) != nil {
             let cellValues = strings.dropFirst(index + 1).prefix(8)
             if let text = cellValues.first(where: { ImageSourceResolver().resolve($0) != nil }) {
-                return WebSheetCellSnapshot(pageURL: pageURL, address: value, text: text, frame: nil)
+                return Result(
+                    snapshot: WebSheetCellSnapshot(pageURL: pageURL, address: value, text: text, frame: nil),
+                    status: .matched(address: value)
+                )
             }
         }
-        return nil
+        let containsAddress = strings.contains { A1CellReference.parse($0) != nil }
+        return Result(snapshot: nil, status: containsAddress ? .missingImageURL : .missingCellAddress)
     }
 
     private static func normalizedPageURL(_ value: String) -> URL? {
@@ -142,6 +179,10 @@ struct WebSheetAdapter: SpreadsheetAdapter {
 
     func isAvailable() -> Bool {
         activeApplicationDetector.activeSpreadsheetApp() == .feishuChrome && client.isTrusted()
+    }
+
+    var lastReadStatus: WebSheetReadStatus {
+        client.lastReadStatus
     }
 
     func currentCell() async -> CellContext? {

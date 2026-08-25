@@ -35,7 +35,7 @@ struct SettingsView: View {
         Form {
             Section("General") {
                 LabeledContent("App mode", value: "Menu bar")
-                LabeledContent("Supported in this phase", value: "WPS, Microsoft Excel")
+                LabeledContent("Supported in this phase", value: "WPS, Microsoft Excel, Feishu Sheets in Chrome")
                 Toggle("Automatic preview", isOn: $settings.automaticPreview)
                 Toggle("Launch at login", isOn: $settings.launchAtLogin)
                 if let launchAtLoginError {
@@ -111,6 +111,7 @@ struct SettingsView: View {
                 LabeledContent("Memory cache hits", value: "\(diagnostics.memoryCacheHitCount)")
                 LabeledContent("Local images", value: "\(diagnostics.localLoadCount)")
                 LabeledContent("Failures", value: "\(diagnostics.failureCount)")
+                LabeledContent("Feishu Sheets", value: operationsStatusStore.webSheetReadStatus.message)
             }
         }
         .formStyle(.grouped)

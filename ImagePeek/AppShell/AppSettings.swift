@@ -118,6 +118,7 @@ struct RuntimeDiagnostics: Sendable {
 final class OperationsStatusStore: ObservableObject {
     @Published private(set) var diagnostics = RuntimeDiagnosticsSnapshot()
     @Published private(set) var cacheSummary: DiskCacheSummary?
+    @Published private(set) var webSheetReadStatus = WebSheetReadStatus.idle
 
     func updateDiagnostics(_ value: RuntimeDiagnosticsSnapshot) {
         diagnostics = value
@@ -125,6 +126,10 @@ final class OperationsStatusStore: ObservableObject {
 
     func updateCacheSummary(_ value: DiskCacheSummary?) {
         cacheSummary = value
+    }
+
+    func updateWebSheetReadStatus(_ value: WebSheetReadStatus) {
+        webSheetReadStatus = value
     }
 }
 

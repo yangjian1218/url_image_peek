@@ -30,6 +30,17 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(snapshot?.text, "https://example.com/image.png")
     }
 
+    func testWebSheetSnapshotParserReportsWhenFocusedCellHasNoImageURL() {
+        let result = WebSheetAccessibilitySnapshotParser.result(from: [
+            "zhijing19.feishu.cn/sheets/abc",
+            "E4",
+            "ordinary text",
+        ])
+
+        XCTAssertNil(result.snapshot)
+        XCTAssertEqual(result.status, .missingImageURL)
+    }
+
     func testWebSheetAdapterReadsImageCellOnlyForTrustedFeishuChrome() async {
         let adapter = WebSheetAdapter(
             client: FakeWebSheetClient(
@@ -374,6 +385,8 @@ private struct FakeAccessibilityClient: AccessibilityClient {
 private struct FakeWebSheetClient: WebSheetAccessibilityClient {
     let trusted: Bool
     let snapshot: WebSheetCellSnapshot?
+
+    var lastReadStatus: WebSheetReadStatus { .idle }
 
     func isTrusted() -> Bool { trusted }
     func currentCellSnapshot() -> WebSheetCellSnapshot? { snapshot }

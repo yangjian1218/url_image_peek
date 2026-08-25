@@ -160,6 +160,9 @@ private final class PreviewRuntimeController {
             guard let self else { return }
             let context = await self.readCurrentCell(for: app)
             self.isReadingCurrentCell = false
+            if app == .feishuChrome {
+                self.operationsStatusStore.updateWebSheetReadStatus(self.webSheetAdapter.lastReadStatus)
+            }
 
             if generation == self.readGeneration,
                self.activeApplicationDetector.activeSpreadsheetApp() == app,

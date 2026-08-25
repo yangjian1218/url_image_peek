@@ -66,7 +66,7 @@ final class SystemWebSheetAccessibilityClient: WebSheetAccessibilityClient {
                 }
             }
             if let children = copyAttribute(kAXChildrenAttribute as CFString, from: element) {
-                pending.append(contentsOf: accessibilityElements(from: children))
+                pending.append(contentsOf: AccessibilityTreeTraversalPolicy.pushOrder(accessibilityElements(from: children)))
             }
         }
         return strings
@@ -86,6 +86,13 @@ final class SystemWebSheetAccessibilityClient: WebSheetAccessibilityClient {
             guard CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
             return unsafeBitCast(value, to: AXUIElement.self)
         }
+    }
+}
+
+enum AccessibilityTreeTraversalPolicy {
+    /// The traversal stack removes its final element first; reverse child nodes to retain AX order.
+    static func pushOrder<Element>(_ children: [Element]) -> [Element] {
+        Array(children.reversed())
     }
 }
 

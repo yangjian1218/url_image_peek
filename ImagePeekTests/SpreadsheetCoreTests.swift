@@ -41,6 +41,12 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(result.status, .missingImageURL)
     }
 
+    func testAccessibilityTreeTraversalPreservesChildOrderWhenUsingAStack() {
+        var pending = AccessibilityTreeTraversalPolicy.pushOrder(["address", "image URL"])
+        XCTAssertEqual(pending.popLast(), "address")
+        XCTAssertEqual(pending.popLast(), "image URL")
+    }
+
     func testWebSheetAdapterReadsImageCellOnlyForTrustedFeishuChrome() async {
         let adapter = WebSheetAdapter(
             client: FakeWebSheetClient(

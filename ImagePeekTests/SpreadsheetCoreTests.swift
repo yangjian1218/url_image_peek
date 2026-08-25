@@ -13,6 +13,58 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(A1CellReference.parse("AA12"), A1CellReference(row: 12, column: 27))
         XCTAssertNil(A1CellReference.parse("4E"))
     }
+
+    func testWebSheetSnapshotParserPairsFocusedAddressWithFollowingImageURL() {
+        let snapshot = WebSheetAccessibilitySnapshotParser.snapshot(from: [
+            "zhijing19.feishu.cn/sheets/abc",
+            "E4",
+            "https://example.com/image.png",
+        ])
+
+        XCTAssertEqual(snapshot?.pageURL, URL(string: "https://zhijing19.feishu.cn/sheets/abc"))
+        XCTAssertEqual(snapshot?.address, "E4")
+        XCTAssertEqual(snapshot?.text, "https://example.com/image.png")
+    }
+
+    func testWebSheetAdapterReadsImageCellOnlyForTrustedFeishuChrome() async {
+        let adapter = WebSheetAdapter(
+            client: FakeWebSheetClient(
+                trusted: true,
+                snapshot: WebSheetCellSnapshot(
+                    pageURL: URL(string: "https://zhijing19.feishu.cn/sheets/abc")!,
+                    address: "E4",
+                    text: "https://example.com/image.png",
+                    frame: nil
+                )
+            ),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .feishuChrome)
+        )
+
+        let cell = await adapter.currentCell()
+
+        XCTAssertEqual(cell?.app, .feishuChrome)
+        XCTAssertEqual(cell?.row, 4)
+        XCTAssertEqual(cell?.column, 5)
+        XCTAssertEqual(cell?.text, "https://example.com/image.png")
+    }
+
+    func testWebSheetAdapterRejectsNonFeishuOrNonImageCell() async {
+        let adapter = WebSheetAdapter(
+            client: FakeWebSheetClient(
+                trusted: true,
+                snapshot: WebSheetCellSnapshot(
+                    pageURL: URL(string: "https://example.com/sheets/abc")!,
+                    address: "E4",
+                    text: "plain text",
+                    frame: nil
+                )
+            ),
+            activeApplicationDetector: FakeActiveApplicationDetector(app: .feishuChrome)
+        )
+
+        let cell = await adapter.currentCell()
+        XCTAssertNil(cell)
+    }
     func testClassifiesInstalledWPSBundleIdentifier() {
         XCTAssertEqual(
             ActiveAppDetector.classify(bundleIdentifier: "com.kingsoft.wpsoffice.mac"),
@@ -290,6 +342,8 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyReleased(123), app: .excel))
         XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyReleased(126), app: .excel))
         XCTAssertFalse(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyCode(123), app: .excel))
+        XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .mouseReleased, app: .feishuChrome))
+        XCTAssertTrue(SpreadsheetSelectionTriggerPolicy.shouldRequestRead(for: .keyReleased(125), app: .feishuChrome))
     }
 }
 
@@ -311,6 +365,14 @@ private struct FakeAccessibilityClient: AccessibilityClient {
     func isTrusted() -> Bool { trusted }
 
     func currentCellSnapshot() -> AccessibilityCellSnapshot? { snapshot }
+}
+
+private struct FakeWebSheetClient: WebSheetAccessibilityClient {
+    let trusted: Bool
+    let snapshot: WebSheetCellSnapshot?
+
+    func isTrusted() -> Bool { trusted }
+    func currentCellSnapshot() -> WebSheetCellSnapshot? { snapshot }
 }
 
 private final class ClipboardFallbackSpy: ClipboardFallback {

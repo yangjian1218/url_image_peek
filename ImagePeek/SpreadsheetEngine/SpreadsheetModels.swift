@@ -3,6 +3,7 @@ import CoreGraphics
 enum SpreadsheetApp: Equatable, Sendable {
     case wps
     case excel
+    case feishuChrome
 }
 
 struct CellContext: Equatable, Sendable {

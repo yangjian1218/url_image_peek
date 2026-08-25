@@ -42,6 +42,7 @@ private final class PreviewRuntimeController {
     private let activeApplicationDetector: ActiveApplicationDetecting
     private let wpsAdapter: WPSAdapter
     private let excelAdapter: ExcelAdapter
+    private let webSheetAdapter: WebSheetAdapter
     private let panelController: PreviewPanelController
     private let remoteImageLoader: RemoteImageLoader
     private let settingsStore: SettingsStore
@@ -71,6 +72,7 @@ private final class PreviewRuntimeController {
         activeApplicationDetector: ActiveApplicationDetecting = ActiveAppDetector(),
         wpsAdapter: WPSAdapter = WPSAdapter(),
         excelAdapter: ExcelAdapter = ExcelAdapter(),
+        webSheetAdapter: WebSheetAdapter = WebSheetAdapter(),
         panelController: PreviewPanelController = PreviewPanelController(),
         remoteImageLoader: RemoteImageLoader = RemoteImageLoader(),
         operationsStatusStore: OperationsStatusStore
@@ -78,6 +80,7 @@ private final class PreviewRuntimeController {
         self.activeApplicationDetector = activeApplicationDetector
         self.wpsAdapter = wpsAdapter
         self.excelAdapter = excelAdapter
+        self.webSheetAdapter = webSheetAdapter
         self.panelController = panelController
         self.remoteImageLoader = remoteImageLoader
         self.settingsStore = settingsStore
@@ -177,6 +180,8 @@ private final class PreviewRuntimeController {
             return wpsAdapter.currentAccessibleCell()
         case .excel:
             return await excelAdapter.currentCell()
+        case .feishuChrome:
+            return await webSheetAdapter.currentCell()
         }
     }
 

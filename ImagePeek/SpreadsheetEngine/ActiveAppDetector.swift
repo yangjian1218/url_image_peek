@@ -8,6 +8,7 @@ struct ActiveAppDetector: ActiveApplicationDetecting {
     private static let supportedBundleIdentifiers: [String: SpreadsheetApp] = [
         "com.kingsoft.wpsoffice.mac": .wps,
         "com.microsoft.excel": .excel,
+        "com.google.chrome": .feishuChrome,
     ]
 
     private let bundleIdentifierProvider: () -> String?

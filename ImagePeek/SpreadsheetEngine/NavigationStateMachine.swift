@@ -52,7 +52,7 @@ enum WPSSelectionTriggerPolicy {
 
 enum SpreadsheetSelectionTriggerPolicy {
     static func shouldRequestRead(for input: WPSSelectionInput, app: SpreadsheetApp?) -> Bool {
-        guard app == .excel else { return false }
+        guard app == .excel || app == .feishuChrome else { return false }
         switch input {
         case .mouseReleased:
             return true

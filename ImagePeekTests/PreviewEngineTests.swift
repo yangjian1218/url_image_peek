@@ -81,7 +81,7 @@ final class PreviewEngineTests: XCTestCase {
     func testPreviewImageInfoPlacesCaptionAboveTheScrollerArea() {
         XCTAssertEqual(
             PreviewImageInfo.captionFrame(containerSize: CGSize(width: 320, height: 480)),
-            CGRect(x: 8, y: 28, width: 304, height: 20)
+            CGRect(x: 8, y: 20, width: 304, height: 20)
         )
         XCTAssertEqual(PreviewImageInfo.captionBackgroundOpacity, 0.42)
     }

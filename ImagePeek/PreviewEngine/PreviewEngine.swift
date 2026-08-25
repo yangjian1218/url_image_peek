@@ -95,7 +95,7 @@ enum PreviewImageLayout {
 }
 
 enum PreviewImageInfo {
-    static let captionBottomInset: CGFloat = 28
+    static let captionBottomInset: CGFloat = 20
     static let captionBackgroundOpacity: CGFloat = 0.42
 
     static func pixelSizeText(for size: CGSize) -> String {

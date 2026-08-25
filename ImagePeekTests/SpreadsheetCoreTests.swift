@@ -32,6 +32,14 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertEqual(GlobalSelectionReadStatus.invalidImageURL.message, "Selected text is not an image URL.")
     }
 
+    func testGlobalSelectionTextSearchUsesFirstNonEmptyAccessibleSelection() {
+        XCTAssertEqual(
+            GlobalSelectionTextSearchPolicy.firstSelection(in: [nil, "   ", " https://example.com/image.png "]),
+            "https://example.com/image.png"
+        )
+        XCTAssertNil(GlobalSelectionTextSearchPolicy.firstSelection(in: [nil, "  "]))
+    }
+
     func testFeishuChromeURLPolicyAcceptsOnlyFeishuSheets() {
         XCTAssertTrue(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/sheets/abc")!))
         XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/docx/abc")!))

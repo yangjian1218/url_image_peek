@@ -72,18 +72,56 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
         }
 
         let focusedElement = unsafeBitCast(focusedValue, to: AXUIElement.self)
-        var selectedTextValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            focusedElement,
-            kAXSelectedTextAttribute as CFString,
-            &selectedTextValue
-        ) == .success,
-        let text = (selectedTextValue as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-        !text.isEmpty else {
+        guard let text = selectedText(from: focusedElement) else {
             return .failure(.noSelectedText)
         }
 
         return .success(GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text))
+    }
+
+    private func selectedText(from root: AXUIElement) -> String? {
+        var pending = [root]
+        var visited = 0
+
+        while let element = pending.popLast(), visited < 96 {
+            visited += 1
+            var selectedTextValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedTextAttribute as CFString,
+                &selectedTextValue
+            ) == .success,
+            let text = GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String]) {
+                return text
+            }
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+            let childrenValue {
+                pending.append(contentsOf: AccessibilityTreeTraversalPolicy.pushOrder(accessibilityElements(from: childrenValue)))
+            }
+        }
+        return nil
+    }
+
+    private func accessibilityElements(from value: CFTypeRef) -> [AXUIElement] {
+        guard let values = value as? [CFTypeRef] else { return [] }
+        return values.compactMap { value in
+            guard CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+            return unsafeBitCast(value, to: AXUIElement.self)
+        }
+    }
+}
+
+enum GlobalSelectionTextSearchPolicy {
+    static func firstSelection(in candidates: [String?]) -> String? {
+        candidates.lazy
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty })
     }
 }
 

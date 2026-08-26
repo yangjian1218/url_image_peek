@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 
 @main
 final class ImagePeekApp: NSObject, NSApplicationDelegate {
@@ -15,6 +16,10 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard Self.isRunningTests || Self.isOnlyRunningInstance else {
+            NSApp.terminate(nil)
+            return
+        }
         NSApp.setActivationPolicy(.accessory)
         let operationsStatusStore = OperationsStatusStore()
         self.operationsStatusStore = operationsStatusStore
@@ -29,6 +34,17 @@ final class ImagePeekApp: NSObject, NSApplicationDelegate {
             operationsStatusStore: operationsStatusStore
         )
         previewRuntimeController?.start()
+    }
+
+    private static var isOnlyRunningInstance: Bool {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return true }
+        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+            .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
+            .isEmpty
+    }
+
+    private static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 }
 
@@ -52,6 +68,8 @@ private final class PreviewRuntimeController {
 
     private var pollTimer: Timer?
     private var selectionEventMonitor: Any?
+    private var workspaceActivationObserver: NSObjectProtocol?
+    private var keyboardShortcutMonitor: RegisteredKeyboardShortcutMonitor?
     private var displayedContext: CellContext?
     private var displayedRequest: PreviewRequest?
     private var displayedImage: NSImage?
@@ -104,6 +122,16 @@ private final class PreviewRuntimeController {
                 self?.handleSelectionEvent(event)
             }
         }
+        workspaceActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshKeyboardShortcutRegistration()
+        }
+        keyboardShortcutMonitor = RegisteredKeyboardShortcutMonitor { [weak self] shortcut in
+            self?.handle(shortcut)
+        }
         poll()
         refreshCacheSummary()
     }
@@ -123,6 +151,7 @@ private final class PreviewRuntimeController {
 
     private func poll() {
         refreshGlobalSelectionPreviewVisibility()
+        refreshKeyboardShortcutRegistration()
         guard settingsStore.load().automaticPreview,
               let app = activeApplicationDetector.activeSpreadsheetApp() else {
             readGeneration &+= 1
@@ -389,6 +418,7 @@ private final class PreviewRuntimeController {
             displayedImage = nil
             displayGeneration &+= 1
             panelController.hide()
+            refreshKeyboardShortcutRegistration()
             Task { await remoteImageLoader.cancelCurrentLoad() }
 
         case let .load(request, context):
@@ -404,6 +434,7 @@ private final class PreviewRuntimeController {
                 guard let self, let loadedImage = await self.image(for: request) else { return }
                 guard generation == self.displayGeneration, self.displayedContext == context else { return }
                 self.displayedImage = loadedImage.image
+                self.refreshKeyboardShortcutRegistration()
                 let settings = self.settingsStore.load()
                 self.panelController.show(
                     image: loadedImage.image,
@@ -420,7 +451,18 @@ private final class PreviewRuntimeController {
         if let selectionEventMonitor {
             NSEvent.removeMonitor(selectionEventMonitor)
         }
+        if let workspaceActivationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(workspaceActivationObserver)
+        }
+        keyboardShortcutMonitor?.stop()
         globalSelectionPreviewTask?.cancel()
+    }
+
+    private func refreshKeyboardShortcutRegistration() {
+        keyboardShortcutMonitor?.update(
+            app: activeApplicationDetector.activeSpreadsheetApp(),
+            hasPreview: displayedImage != nil
+        )
     }
 
     private func handle(_ shortcut: PreviewShortcut) {
@@ -513,5 +555,125 @@ private final class PreviewRuntimeController {
     private func recordDiagnostic(_ result: RuntimeDiagnosticResult) {
         diagnostics.record(result)
         operationsStatusStore.updateDiagnostics(diagnostics.snapshot)
+    }
+}
+
+private final class RegisteredKeyboardShortcutMonitor {
+    private static let signature = OSType(0x494D504B) // "IMPK"
+    private static let eventType = EventTypeSpec(
+        eventClass: OSType(kEventClassKeyboard),
+        eventKind: UInt32(kEventHotKeyPressed)
+    )
+
+    private let handle: (PreviewShortcut) -> Void
+    private var eventHandler: EventHandlerRef?
+    private var hotKeys: [EventHotKeyRef] = []
+    private var isRegistered = false
+
+    init(handle: @escaping (PreviewShortcut) -> Void) {
+        self.handle = handle
+        var eventType = Self.eventType
+        InstallEventHandler(
+            GetApplicationEventTarget(),
+            Self.callback,
+            1,
+            &eventType,
+            Unmanaged.passUnretained(self).toOpaque(),
+            &eventHandler
+        )
+    }
+
+    func update(app: SpreadsheetApp?, hasPreview: Bool) {
+        let shouldRegister = PreviewShortcutPolicy.canHandle(.space, app: app, hasPreview: hasPreview)
+        guard shouldRegister != isRegistered else { return }
+        if shouldRegister {
+            registerHotKeys()
+        } else {
+            unregisterHotKeys()
+        }
+    }
+
+    func stop() {
+        unregisterHotKeys()
+        if let eventHandler {
+            RemoveEventHandler(eventHandler)
+            self.eventHandler = nil
+        }
+    }
+
+    deinit {
+        stop()
+    }
+
+    private func registerHotKeys() {
+        let definitions: [(PreviewShortcut, UInt32, UInt32)] = [
+            (.space, 49, 0),
+            (.escape, 53, 0),
+            (.optionC, 8, UInt32(optionKey)),
+            (.optionO, 31, UInt32(optionKey)),
+            (.optionR, 15, UInt32(optionKey)),
+            (.optionP, 35, UInt32(optionKey)),
+        ]
+        var registeredHotKeys: [EventHotKeyRef] = []
+        for (index, definition) in definitions.enumerated() {
+            var hotKey: EventHotKeyRef?
+            let identifier = EventHotKeyID(signature: Self.signature, id: UInt32(index + 1))
+            guard RegisterEventHotKey(
+                definition.1,
+                definition.2,
+                identifier,
+                GetApplicationEventTarget(),
+                0,
+                &hotKey
+            ) == noErr, let hotKey else {
+                registeredHotKeys.forEach { _ = UnregisterEventHotKey($0) }
+                return
+            }
+            registeredHotKeys.append(hotKey)
+        }
+        hotKeys = registeredHotKeys
+        isRegistered = true
+    }
+
+    private func unregisterHotKeys() {
+        hotKeys.forEach { _ = UnregisterEventHotKey($0) }
+        hotKeys.removeAll()
+        isRegistered = false
+    }
+
+    private static let callback: EventHandlerUPP = { _, event, userData in
+        guard let event, let userData else { return noErr }
+        var identifier = EventHotKeyID()
+        guard GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &identifier
+        ) == noErr,
+        identifier.signature == RegisteredKeyboardShortcutMonitor.signature,
+        let shortcut = RegisteredKeyboardShortcutMonitor.shortcut(for: identifier.id) else {
+            return noErr
+        }
+
+        let monitor = Unmanaged<RegisteredKeyboardShortcutMonitor>.fromOpaque(userData).takeUnretainedValue()
+        DispatchQueue.main.async {
+            monitor.handle(shortcut)
+        }
+        return noErr
+    }
+
+    private static func shortcut(for identifier: UInt32) -> PreviewShortcut? {
+        switch identifier {
+        case 1: .space
+        case 2: .escape
+        case 3: .optionC
+        case 4: .optionO
+        case 5: .optionR
+        case 6: .optionP
+        default: nil
+        }
     }
 }

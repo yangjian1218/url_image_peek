@@ -150,6 +150,9 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             if let text = selectedTextForRange(from: element, diagnostics: &diagnostics) {
                 return text
             }
+            if let text = selectedTextForTextMarkerRange(from: element) {
+                return text
+            }
 
             var childrenValue: CFTypeRef?
             if AXUIElementCopyAttributeValue(
@@ -173,14 +176,14 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
            let attributes = attributesValue as? [String] {
             diagnostics.selectedTextAttributeCount += attributes.contains(kAXSelectedTextAttribute as String) ? 1 : 0
             diagnostics.selectedTextRangeAttributeCount += attributes.contains(kAXSelectedTextRangeAttribute as String) ? 1 : 0
-            diagnostics.textMarkerRangeAttributeCount += attributes.contains("AXSelectedTextMarkerRange") ? 1 : 0
+            diagnostics.textMarkerRangeAttributeCount += attributes.contains(GlobalSelectionTextMarkerPolicy.selectedTextMarkerRangeAttribute as String) ? 1 : 0
         }
 
         var parameterizedAttributesValue: CFArray?
         if AXUIElementCopyParameterizedAttributeNames(element, &parameterizedAttributesValue) == .success,
            let attributes = parameterizedAttributesValue as? [String] {
             diagnostics.stringForRangeAttributeCount += attributes.contains(kAXStringForRangeParameterizedAttribute as String) ? 1 : 0
-            diagnostics.stringForTextMarkerRangeAttributeCount += attributes.contains("AXStringForTextMarkerRange") ? 1 : 0
+            diagnostics.stringForTextMarkerRangeAttributeCount += attributes.contains(GlobalSelectionTextMarkerPolicy.stringForTextMarkerRangeAttribute as String) ? 1 : 0
         }
     }
 
@@ -225,6 +228,29 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
         return GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String])
     }
 
+    private func selectedTextForTextMarkerRange(from element: AXUIElement) -> String? {
+        var textMarkerRangeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            GlobalSelectionTextMarkerPolicy.selectedTextMarkerRangeAttribute,
+            &textMarkerRangeValue
+        ) == .success,
+        let textMarkerRangeValue else {
+            return nil
+        }
+
+        var selectedTextValue: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            element,
+            GlobalSelectionTextMarkerPolicy.stringForTextMarkerRangeAttribute,
+            textMarkerRangeValue,
+            &selectedTextValue
+        ) == .success else {
+            return nil
+        }
+        return GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String])
+    }
+
     private func accessibilityElements(from value: CFTypeRef) -> [AXUIElement] {
         guard let values = value as? [CFTypeRef] else { return [] }
         return values.compactMap { value in
@@ -251,6 +277,11 @@ enum GlobalSelectionTextSearchPolicy {
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first(where: { !$0.isEmpty })
     }
+}
+
+enum GlobalSelectionTextMarkerPolicy {
+    static let selectedTextMarkerRangeAttribute = "AXSelectedTextMarkerRange" as CFString
+    static let stringForTextMarkerRangeAttribute = "AXStringForTextMarkerRange" as CFString
 }
 
 enum GlobalSelectionPreviewPolicy {

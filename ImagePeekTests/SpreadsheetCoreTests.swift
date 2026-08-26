@@ -56,6 +56,17 @@ final class SpreadsheetCoreTests: XCTestCase {
         )
     }
 
+    func testGlobalSelectionTextMarkerPolicyUsesNativeAccessibilityAttributes() {
+        XCTAssertEqual(
+            GlobalSelectionTextMarkerPolicy.selectedTextMarkerRangeAttribute as String,
+            "AXSelectedTextMarkerRange"
+        )
+        XCTAssertEqual(
+            GlobalSelectionTextMarkerPolicy.stringForTextMarkerRangeAttribute as String,
+            "AXStringForTextMarkerRange"
+        )
+    }
+
     func testGlobalSelectionAccessibilityDiagnosticsUsesTextFreeSummary() {
         let diagnostics = GlobalSelectionAccessibilityDiagnostics(
             focusedElementAvailable: false,

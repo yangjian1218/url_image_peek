@@ -14,6 +14,9 @@ struct GlobalSelectionAccessibilityDiagnostics: Equatable {
     var textMarkerRangeAttributeCount: Int
     var stringForRangeAttributeCount: Int
     var stringForTextMarkerRangeAttributeCount: Int
+    var nonEmptySelectedRangeCount: Int
+    var stringForRangeSuccessCount: Int
+    var lastStringForRangeErrorCode: Int?
 
     static let empty = GlobalSelectionAccessibilityDiagnostics(
         focusedElementAvailable: false,
@@ -22,11 +25,14 @@ struct GlobalSelectionAccessibilityDiagnostics: Equatable {
         selectedTextRangeAttributeCount: 0,
         textMarkerRangeAttributeCount: 0,
         stringForRangeAttributeCount: 0,
-        stringForTextMarkerRangeAttributeCount: 0
+        stringForTextMarkerRangeAttributeCount: 0,
+        nonEmptySelectedRangeCount: 0,
+        stringForRangeSuccessCount: 0,
+        lastStringForRangeErrorCode: nil
     )
 
     var summary: String {
-        "Focus: \(focusedElementAvailable ? "yes" : "no") · nodes: \(scannedNodeCount) · text: \(selectedTextAttributeCount) · range: \(selectedTextRangeAttributeCount) · marker: \(textMarkerRangeAttributeCount) · string-range: \(stringForRangeAttributeCount) · marker-string: \(stringForTextMarkerRangeAttributeCount)"
+        "Focus: \(focusedElementAvailable ? "yes" : "no") · nodes: \(scannedNodeCount) · text: \(selectedTextAttributeCount) · range: \(selectedTextRangeAttributeCount) · marker: \(textMarkerRangeAttributeCount) · string-range: \(stringForRangeAttributeCount) · marker-string: \(stringForTextMarkerRangeAttributeCount) · active-range: \(nonEmptySelectedRangeCount) · string-ok: \(stringForRangeSuccessCount) · string-error: \(lastStringForRangeErrorCode.map(String.init) ?? "-")"
     }
 }
 
@@ -141,7 +147,7 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             let text = GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String]) {
                 return text
             }
-            if let text = selectedTextForRange(from: element) {
+            if let text = selectedTextForRange(from: element, diagnostics: &diagnostics) {
                 return text
             }
 
@@ -178,7 +184,10 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
         }
     }
 
-    private func selectedTextForRange(from element: AXUIElement) -> String? {
+    private func selectedTextForRange(
+        from element: AXUIElement,
+        diagnostics: inout GlobalSelectionAccessibilityDiagnostics
+    ) -> String? {
         var selectedRangeValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
             element,
@@ -191,15 +200,28 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             return nil
         }
 
+        var selectedRange = CFRange()
+        guard AXValueGetValue(
+            unsafeBitCast(selectedRangeValue, to: AXValue.self),
+            .cfRange,
+            &selectedRange
+        ), selectedRange.length > 0 else {
+            return nil
+        }
+        diagnostics.nonEmptySelectedRangeCount += 1
+
         var selectedTextValue: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(
+        let error = AXUIElementCopyParameterizedAttributeValue(
             element,
             kAXStringForRangeParameterizedAttribute as CFString,
             selectedRangeValue,
             &selectedTextValue
-        ) == .success else {
+        )
+        guard error == .success else {
+            diagnostics.lastStringForRangeErrorCode = Int(error.rawValue)
             return nil
         }
+        diagnostics.stringForRangeSuccessCount += 1
         return GlobalSelectionTextSearchPolicy.firstSelection(in: [selectedTextValue as? String])
     }
 

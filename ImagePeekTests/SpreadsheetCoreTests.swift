@@ -64,12 +64,15 @@ final class SpreadsheetCoreTests: XCTestCase {
             selectedTextRangeAttributeCount: 1,
             textMarkerRangeAttributeCount: 0,
             stringForRangeAttributeCount: 1,
-            stringForTextMarkerRangeAttributeCount: 0
+            stringForTextMarkerRangeAttributeCount: 0,
+            nonEmptySelectedRangeCount: 1,
+            stringForRangeSuccessCount: 0,
+            lastStringForRangeErrorCode: -25205
         )
 
         XCTAssertEqual(
             diagnostics.summary,
-            "Focus: no · nodes: 128 · text: 0 · range: 1 · marker: 0 · string-range: 1 · marker-string: 0"
+            "Focus: no · nodes: 128 · text: 0 · range: 1 · marker: 0 · string-range: 1 · marker-string: 0 · active-range: 1 · string-ok: 0 · string-error: -25205"
         )
     }
 

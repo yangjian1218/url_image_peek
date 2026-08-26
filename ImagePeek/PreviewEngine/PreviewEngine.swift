@@ -191,17 +191,8 @@ enum PreviewShortcutPolicy {
 }
 
 enum KeyboardShortcutEventTapPolicy {
-    enum StartAction: Equatable {
-        case start
-        case requestAccessibility
-    }
-
-    static func canStart(accessibilityGranted: Bool) -> Bool {
-        accessibilityGranted
-    }
-
-    static func startAction(accessibilityGranted: Bool) -> StartAction {
-        accessibilityGranted ? .start : .requestAccessibility
+    static func canStart(accessibilityGranted _: Bool) -> Bool {
+        false
     }
 }
 

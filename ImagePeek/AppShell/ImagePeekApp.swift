@@ -1,5 +1,4 @@
 import AppKit
-import ApplicationServices
 
 @main
 final class ImagePeekApp: NSObject, NSApplicationDelegate {
@@ -53,7 +52,6 @@ private final class PreviewRuntimeController {
 
     private var pollTimer: Timer?
     private var selectionEventMonitor: Any?
-    private var keyboardShortcutMonitor: KeyboardShortcutMonitor?
     private var displayedContext: CellContext?
     private var displayedRequest: PreviewRequest?
     private var displayedImage: NSImage?
@@ -106,20 +104,6 @@ private final class PreviewRuntimeController {
                 self?.handleSelectionEvent(event)
             }
         }
-        keyboardShortcutMonitor = KeyboardShortcutMonitor(
-            shouldHandle: { [weak self] shortcut in
-                guard let self else { return false }
-                return PreviewShortcutPolicy.canHandle(
-                    shortcut,
-                    app: self.activeApplicationDetector.activeSpreadsheetApp(),
-                    hasPreview: self.displayedImage != nil
-                )
-            },
-            handle: { [weak self] shortcut in
-                self?.handle(shortcut)
-            }
-        )
-        keyboardShortcutMonitor?.start()
         poll()
         refreshCacheSummary()
     }
@@ -529,85 +513,5 @@ private final class PreviewRuntimeController {
     private func recordDiagnostic(_ result: RuntimeDiagnosticResult) {
         diagnostics.record(result)
         operationsStatusStore.updateDiagnostics(diagnostics.snapshot)
-    }
-}
-
-private final class KeyboardShortcutMonitor {
-    private let shouldHandle: (PreviewShortcut) -> Bool
-    private let handle: (PreviewShortcut) -> Void
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
-
-    init(
-        shouldHandle: @escaping (PreviewShortcut) -> Bool,
-        handle: @escaping (PreviewShortcut) -> Void
-    ) {
-        self.shouldHandle = shouldHandle
-        self.handle = handle
-    }
-
-    func start() {
-        guard eventTap == nil else { return }
-        let accessibilityGranted = AXIsProcessTrusted()
-        guard KeyboardShortcutEventTapPolicy.startAction(accessibilityGranted: accessibilityGranted) == .start else {
-            Self.requestAccessibilityPrompt()
-            return
-        }
-        let eventMask = CGEventMask(1) << CGEventType.keyDown.rawValue
-        let reference = Unmanaged.passUnretained(self).toOpaque()
-        guard let eventTap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: eventMask,
-            callback: Self.callback,
-            userInfo: reference
-        ) else {
-            return
-        }
-
-        self.eventTap = eventTap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
-        runLoopSource = source
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: eventTap, enable: true)
-    }
-
-    deinit {
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        }
-    }
-
-    private static let callback: CGEventTapCallBack = { _, type, event, userInfo in
-        guard let userInfo else { return Unmanaged.passUnretained(event) }
-        let monitor = Unmanaged<KeyboardShortcutMonitor>.fromOpaque(userInfo).takeUnretainedValue()
-
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput,
-           let eventTap = monitor.eventTap {
-            CGEvent.tapEnable(tap: eventTap, enable: true)
-            return Unmanaged.passUnretained(event)
-        }
-
-        guard type == .keyDown,
-              let shortcut = PreviewShortcutResolver.shortcut(
-                  keyCode: UInt16(event.getIntegerValueField(.keyboardEventKeycode)),
-                  modifiers: NSEvent.ModifierFlags(rawValue: UInt(event.flags.rawValue))
-              ),
-              monitor.shouldHandle(shortcut) else {
-            return Unmanaged.passUnretained(event)
-        }
-
-        DispatchQueue.main.async {
-            monitor.handle(shortcut)
-        }
-        return nil
-    }
-
-    private static func requestAccessibilityPrompt() {
-        let options = [
-            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true,
-        ] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
     }
 }

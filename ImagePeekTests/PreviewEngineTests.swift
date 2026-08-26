@@ -185,20 +185,9 @@ final class PreviewEngineTests: XCTestCase {
         }
     }
 
-    func testKeyboardShortcutEventTapCanStartWithAccessibilityPermission() {
-        XCTAssertTrue(KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: true))
+    func testKeyboardShortcutEventTapStaysDisabledToProtectSystemInput() {
+        XCTAssertFalse(KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: true))
         XCTAssertFalse(KeyboardShortcutEventTapPolicy.canStart(accessibilityGranted: false))
-    }
-
-    func testKeyboardShortcutEventTapRequestsAccessibilityWhenItIsUnavailable() {
-        XCTAssertEqual(
-            KeyboardShortcutEventTapPolicy.startAction(accessibilityGranted: false),
-            .requestAccessibility
-        )
-        XCTAssertEqual(
-            KeyboardShortcutEventTapPolicy.startAction(accessibilityGranted: true),
-            .start
-        )
     }
 
     func testShortcutResolverRecognizesOnlyDocumentedConditionalShortcuts() {

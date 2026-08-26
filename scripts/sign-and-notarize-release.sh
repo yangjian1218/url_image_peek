@@ -12,10 +12,11 @@ task_output_dir="$3"
 task_root="$(cd "$(dirname "$0")/.." && pwd)"
 task_derived_data="$task_root/.build/release"
 task_app="$task_derived_data/Build/Products/Release/ImagePeek.app"
-task_archive="$task_output_dir/ImagePeek-1.0.0.zip"
-task_submission_archive="$task_output_dir/ImagePeek-1.0.0-notary-submit.zip"
 
 [[ -d "$task_app" ]] || { print -u2 "Run package-release.sh first."; exit 1; }
+task_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$task_app/Contents/Info.plist")"
+task_archive="$task_output_dir/ImagePeek-$task_version.zip"
+task_submission_archive="$task_output_dir/ImagePeek-$task_version-notary-submit.zip"
 [[ ! -e "$task_archive" ]] || { print -u2 "Refusing to overwrite existing archive: $task_archive"; exit 1; }
 [[ ! -e "$task_submission_archive" ]] || { print -u2 "Refusing to overwrite existing submission archive: $task_submission_archive"; exit 1; }
 

@@ -44,6 +44,18 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertNil(GlobalSelectionTextSearchPolicy.firstSelection(in: [nil, "  "]))
     }
 
+    func testGlobalSelectionTextSearchUsesBoundedFocusedAndApplicationRoots() {
+        XCTAssertEqual(GlobalSelectionTextSearchPolicy.maximumElementsPerRoot, 128)
+        XCTAssertEqual(
+            GlobalSelectionTextSearchPolicy.scopes(hasFocusedElement: true),
+            [.focusedElement, .application]
+        )
+        XCTAssertEqual(
+            GlobalSelectionTextSearchPolicy.scopes(hasFocusedElement: false),
+            [.application]
+        )
+    }
+
     func testFeishuChromeURLPolicyAcceptsOnlyFeishuSheets() {
         XCTAssertTrue(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/sheets/abc")!))
         XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/docx/abc")!))

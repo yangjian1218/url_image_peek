@@ -64,29 +64,42 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
 
         let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
         var focusedValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
+        let hasFocusedElement = AXUIElementCopyAttributeValue(
             applicationElement,
             kAXFocusedUIElementAttribute as CFString,
             &focusedValue
-        ) == .success,
-        let focusedValue,
-        CFGetTypeID(focusedValue) == AXUIElementGetTypeID() else {
-            return .failure(.noFocusedElement)
+        ) == .success
+        let focusedElement: AXUIElement?
+        if hasFocusedElement,
+           let focusedValue,
+           CFGetTypeID(focusedValue) == AXUIElementGetTypeID() {
+            focusedElement = unsafeBitCast(focusedValue, to: AXUIElement.self)
+        } else {
+            focusedElement = nil
         }
 
-        let focusedElement = unsafeBitCast(focusedValue, to: AXUIElement.self)
-        guard let text = selectedText(from: focusedElement) else {
-            return .failure(.noSelectedText)
+        for scope in GlobalSelectionTextSearchPolicy.scopes(hasFocusedElement: focusedElement != nil) {
+            let root: AXUIElement
+            switch scope {
+            case .focusedElement:
+                guard let focusedElement else { continue }
+                root = focusedElement
+            case .application:
+                root = applicationElement
+            }
+            if let text = selectedText(from: root) {
+                return .success(GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text))
+            }
         }
 
-        return .success(GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text))
+        return .failure(focusedElement == nil ? .noFocusedElement : .noSelectedText)
     }
 
     private func selectedText(from root: AXUIElement) -> String? {
         var pending = [root]
         var visited = 0
 
-        while let element = pending.popLast(), visited < 96 {
+        while let element = pending.popLast(), visited < GlobalSelectionTextSearchPolicy.maximumElementsPerRoot {
             visited += 1
             var selectedTextValue: CFTypeRef?
             if AXUIElementCopyAttributeValue(
@@ -149,6 +162,17 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
 }
 
 enum GlobalSelectionTextSearchPolicy {
+    enum Scope: Equatable {
+        case focusedElement
+        case application
+    }
+
+    static let maximumElementsPerRoot = 128
+
+    static func scopes(hasFocusedElement: Bool) -> [Scope] {
+        hasFocusedElement ? [.focusedElement, .application] : [.application]
+    }
+
     static func firstSelection(in candidates: [String?]) -> String? {
         candidates.lazy
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }

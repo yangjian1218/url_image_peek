@@ -81,7 +81,7 @@ struct SettingsView: View {
                 Toggle("Show pixel dimensions", isOn: $settings.showsPixelDimensions)
                 Toggle("Show load source", isOn: $settings.showsLoadSource)
                 Toggle("Preview selected image URL anywhere", isOn: $settings.globalSelectionPreviewEnabled)
-                Text("After selecting a complete image URL, ImagePeek waits one second before previewing it. It works only where macOS Accessibility exposes selected text and never uses the clipboard.")
+                Text("After selecting a complete image URL, ImagePeek waits half a second before previewing it. It works only where macOS Accessibility exposes selected text and never uses the clipboard.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

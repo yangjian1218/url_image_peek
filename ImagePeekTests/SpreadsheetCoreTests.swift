@@ -15,8 +15,8 @@ final class SpreadsheetCoreTests: XCTestCase {
         XCTAssertTrue(GlobalSelectionPreviewPolicy.shouldObserve(app: nil))
     }
 
-    func testGlobalSelectionCoordinatorUsesOneSecondDelay() {
-        XCTAssertEqual(GlobalSelectionPreviewCoordinator.delay, 1)
+    func testGlobalSelectionCoordinatorUsesHalfSecondDelay() {
+        XCTAssertEqual(GlobalSelectionPreviewCoordinator.delay, 0.5)
     }
 
     func testGlobalSelectionEventPolicySchedulesOnMouseUpAndCancelsOnPointerMove() {

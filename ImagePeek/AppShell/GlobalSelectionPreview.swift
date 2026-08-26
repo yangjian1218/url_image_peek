@@ -191,7 +191,7 @@ enum GlobalSelectionPreviewPolicy {
 }
 
 struct GlobalSelectionPreviewCoordinator {
-    static let delay: TimeInterval = 1
+    static let delay: TimeInterval = 0.5
 }
 
 enum GlobalSelectionPreviewEvent: Equatable {

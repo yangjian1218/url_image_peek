@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift 5, AppKit, ApplicationServices, SwiftUI, XCTest.
 
-**Spec:** Confirmed user design in this task: default-off setting; wait one second after selecting a complete image URL; hide on pointer movement, selection cancellation, or app change; no clipboard, simulated keystrokes, browser injection, or input interception; silently skip apps without Accessibility-selected-text support.
+**Spec:** Confirmed user design in this task: default-off setting; initially wait one second after selecting a complete image URL, later revised to half a second; hide on pointer movement, selection cancellation, or app change; no clipboard, simulated keystrokes, browser injection, or input interception; silently skip apps without Accessibility-selected-text support.
 
 ## Global Constraints
 

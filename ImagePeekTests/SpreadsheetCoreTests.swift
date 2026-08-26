@@ -56,6 +56,23 @@ final class SpreadsheetCoreTests: XCTestCase {
         )
     }
 
+    func testGlobalSelectionAccessibilityDiagnosticsUsesTextFreeSummary() {
+        let diagnostics = GlobalSelectionAccessibilityDiagnostics(
+            focusedElementAvailable: false,
+            scannedNodeCount: 128,
+            selectedTextAttributeCount: 0,
+            selectedTextRangeAttributeCount: 1,
+            textMarkerRangeAttributeCount: 0,
+            stringForRangeAttributeCount: 1,
+            stringForTextMarkerRangeAttributeCount: 0
+        )
+
+        XCTAssertEqual(
+            diagnostics.summary,
+            "Focus: no · nodes: 128 · text: 0 · range: 1 · marker: 0 · string-range: 1 · marker-string: 0"
+        )
+    }
+
     func testFeishuChromeURLPolicyAcceptsOnlyFeishuSheets() {
         XCTAssertTrue(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/sheets/abc")!))
         XCTAssertFalse(WebSheetURLPolicy.isSupported(URL(string: "https://zhijing19.feishu.cn/docx/abc")!))

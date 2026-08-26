@@ -289,9 +289,11 @@ private final class PreviewRuntimeController {
 
             let selection: GlobalSelectedTextSnapshot
             switch self.globalSelectedTextReader.selectedTextSnapshot() {
-            case let .success(snapshot):
+            case let .success(snapshot, diagnostics):
+                self.operationsStatusStore.updateGlobalSelectionAccessibilityDiagnostics(diagnostics)
                 selection = snapshot
-            case let .failure(status):
+            case let .failure(status, diagnostics):
+                self.operationsStatusStore.updateGlobalSelectionAccessibilityDiagnostics(diagnostics)
                 self.operationsStatusStore.updateGlobalSelectionReadStatus(status)
                 return
             }

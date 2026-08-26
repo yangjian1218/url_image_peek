@@ -125,6 +125,7 @@ final class OperationsStatusStore: ObservableObject {
     @Published private(set) var cacheSummary: DiskCacheSummary?
     @Published private(set) var webSheetReadStatus = WebSheetReadStatus.idle
     @Published private(set) var globalSelectionReadStatus = GlobalSelectionReadStatus.idle
+    @Published private(set) var globalSelectionAccessibilityDiagnostics = GlobalSelectionAccessibilityDiagnostics.empty
 
     func updateDiagnostics(_ value: RuntimeDiagnosticsSnapshot) {
         diagnostics = value
@@ -140,6 +141,10 @@ final class OperationsStatusStore: ObservableObject {
 
     func updateGlobalSelectionReadStatus(_ value: GlobalSelectionReadStatus) {
         globalSelectionReadStatus = value
+    }
+
+    func updateGlobalSelectionAccessibilityDiagnostics(_ value: GlobalSelectionAccessibilityDiagnostics) {
+        globalSelectionAccessibilityDiagnostics = value
     }
 }
 

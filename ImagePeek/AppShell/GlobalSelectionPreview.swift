@@ -6,6 +6,30 @@ struct GlobalSelectedTextSnapshot: Equatable {
     let text: String
 }
 
+struct GlobalSelectionAccessibilityDiagnostics: Equatable {
+    var focusedElementAvailable: Bool
+    var scannedNodeCount: Int
+    var selectedTextAttributeCount: Int
+    var selectedTextRangeAttributeCount: Int
+    var textMarkerRangeAttributeCount: Int
+    var stringForRangeAttributeCount: Int
+    var stringForTextMarkerRangeAttributeCount: Int
+
+    static let empty = GlobalSelectionAccessibilityDiagnostics(
+        focusedElementAvailable: false,
+        scannedNodeCount: 0,
+        selectedTextAttributeCount: 0,
+        selectedTextRangeAttributeCount: 0,
+        textMarkerRangeAttributeCount: 0,
+        stringForRangeAttributeCount: 0,
+        stringForTextMarkerRangeAttributeCount: 0
+    )
+
+    var summary: String {
+        "Focus: \(focusedElementAvailable ? "yes" : "no") · nodes: \(scannedNodeCount) · text: \(selectedTextAttributeCount) · range: \(selectedTextRangeAttributeCount) · marker: \(textMarkerRangeAttributeCount) · string-range: \(stringForRangeAttributeCount) · marker-string: \(stringForTextMarkerRangeAttributeCount)"
+    }
+}
+
 enum GlobalSelectionReadStatus: Equatable {
     case idle
     case waiting
@@ -45,8 +69,8 @@ enum GlobalSelectionReadStatus: Equatable {
 }
 
 enum GlobalSelectedTextReadResult {
-    case success(GlobalSelectedTextSnapshot)
-    case failure(GlobalSelectionReadStatus)
+    case success(GlobalSelectedTextSnapshot, GlobalSelectionAccessibilityDiagnostics)
+    case failure(GlobalSelectionReadStatus, GlobalSelectionAccessibilityDiagnostics)
 }
 
 protocol GlobalSelectedTextReading {
@@ -56,10 +80,10 @@ protocol GlobalSelectedTextReading {
 struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
     func selectedTextSnapshot() -> GlobalSelectedTextReadResult {
         guard AXIsProcessTrusted() else {
-            return .failure(.accessibilityRequired)
+            return .failure(.accessibilityRequired, .empty)
         }
         guard let application = NSWorkspace.shared.frontmostApplication else {
-            return .failure(.noFrontmostApplication)
+            return .failure(.noFrontmostApplication, .empty)
         }
 
         let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
@@ -77,6 +101,8 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
         } else {
             focusedElement = nil
         }
+        var diagnostics = GlobalSelectionAccessibilityDiagnostics.empty
+        diagnostics.focusedElementAvailable = focusedElement != nil
 
         for scope in GlobalSelectionTextSearchPolicy.scopes(hasFocusedElement: focusedElement != nil) {
             let root: AXUIElement
@@ -87,20 +113,25 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             case .application:
                 root = applicationElement
             }
-            if let text = selectedText(from: root) {
-                return .success(GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text))
+            if let text = selectedText(from: root, diagnostics: &diagnostics) {
+                return .success(GlobalSelectedTextSnapshot(bundleIdentifier: application.bundleIdentifier, text: text), diagnostics)
             }
         }
 
-        return .failure(focusedElement == nil ? .noFocusedElement : .noSelectedText)
+        return .failure(focusedElement == nil ? .noFocusedElement : .noSelectedText, diagnostics)
     }
 
-    private func selectedText(from root: AXUIElement) -> String? {
+    private func selectedText(
+        from root: AXUIElement,
+        diagnostics: inout GlobalSelectionAccessibilityDiagnostics
+    ) -> String? {
         var pending = [root]
         var visited = 0
 
         while let element = pending.popLast(), visited < GlobalSelectionTextSearchPolicy.maximumElementsPerRoot {
             visited += 1
+            diagnostics.scannedNodeCount += 1
+            recordCapabilities(of: element, diagnostics: &diagnostics)
             var selectedTextValue: CFTypeRef?
             if AXUIElementCopyAttributeValue(
                 element,
@@ -125,6 +156,26 @@ struct SystemGlobalSelectedTextReader: GlobalSelectedTextReading {
             }
         }
         return nil
+    }
+
+    private func recordCapabilities(
+        of element: AXUIElement,
+        diagnostics: inout GlobalSelectionAccessibilityDiagnostics
+    ) {
+        var attributesValue: CFArray?
+        if AXUIElementCopyAttributeNames(element, &attributesValue) == .success,
+           let attributes = attributesValue as? [String] {
+            diagnostics.selectedTextAttributeCount += attributes.contains(kAXSelectedTextAttribute as String) ? 1 : 0
+            diagnostics.selectedTextRangeAttributeCount += attributes.contains(kAXSelectedTextRangeAttribute as String) ? 1 : 0
+            diagnostics.textMarkerRangeAttributeCount += attributes.contains("AXSelectedTextMarkerRange") ? 1 : 0
+        }
+
+        var parameterizedAttributesValue: CFArray?
+        if AXUIElementCopyParameterizedAttributeNames(element, &parameterizedAttributesValue) == .success,
+           let attributes = parameterizedAttributesValue as? [String] {
+            diagnostics.stringForRangeAttributeCount += attributes.contains(kAXStringForRangeParameterizedAttribute as String) ? 1 : 0
+            diagnostics.stringForTextMarkerRangeAttributeCount += attributes.contains("AXStringForTextMarkerRange") ? 1 : 0
+        }
     }
 
     private func selectedTextForRange(from element: AXUIElement) -> String? {

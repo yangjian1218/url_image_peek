@@ -3,3 +3,5 @@
 .build/
 artifacts/
 ImagePeek.xcodeproj/project.xcworkspace/xcuserdata/
+PROJECT_HANDOFF.md
+docs/superpowers/

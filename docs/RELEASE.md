@@ -1,8 +1,8 @@
 # ImagePeek 发布流程
 
-## 公开测试版：无签名 ZIP
+## 公开测试版：开发签名 ZIP
 
-在未加入 Apple Developer Program 前，ImagePeek 以 GitHub Release 的无签名 ZIP 形式分发。它适合公开测试和小范围试用，但首次启动会显示 macOS 安全提示。
+在未使用 Developer ID 公证前，ImagePeek 以 GitHub Release 的开发签名 ZIP 形式分发。辅助功能授权要求应用具有稳定签名身份；此包使用构建机本地的开发证书签名，但仍不是 Developer ID 公证包，因此适合公开测试和小范围试用。
 
 ```zsh
 ./scripts/package-release.sh
@@ -10,23 +10,29 @@
 
 脚本会：
 
-1. 执行无签名的 Release 构建。
-2. 读取 App 的版本号并生成 `artifacts/ImagePeek-0.1.0-unsigned.zip`。
-3. 生成同目录的 SHA-256 校验文件 `ImagePeek-0.1.0-unsigned.zip.sha256`。
+1. 执行开发签名的 Release 构建，并验证 App 签名。
+2. 读取 App 的版本号并生成 `artifacts/ImagePeek-0.1.3-development-signed.zip`。
+3. 生成同目录的 SHA-256 校验文件 `ImagePeek-0.1.3-development-signed.zip.sha256`。
 4. 验证 ZIP 可完整读取，且只包含 `ImagePeek.app`。
 
 发布前应在终端执行：
 
 ```zsh
-shasum -a 256 artifacts/ImagePeek-0.1.0-unsigned.zip
-cat artifacts/ImagePeek-0.1.0-unsigned.zip.sha256
+shasum -a 256 artifacts/ImagePeek-0.1.3-development-signed.zip
+cat artifacts/ImagePeek-0.1.3-development-signed.zip.sha256
 ```
 
 两行哈希必须相同。上传 ZIP 与对应 `.sha256` 文件至同一个 GitHub Release。
 
 ### 用户安装说明
 
-用户下载并解压 ZIP 后，将 `ImagePeek.app` 拖入“应用程序”。因为当前版本没有 Developer ID 签名，首次运行应按住 Control 点击 App，选择“打开”，再确认“打开”。不要建议用户关闭 Gatekeeper 或执行来源不明的终端命令。
+用户下载并解压 ZIP 后，将 `ImagePeek.app` 拖入“应用程序”。因为当前版本没有 Developer ID 公证，首次运行应按住 Control 点击 App，选择“打开”，再确认“打开”。不要建议用户关闭 Gatekeeper 或执行来源不明的终端命令。
+
+默认使用构建机上的 `NotchBar Development` 证书。其他构建机应显式设置自己的证书名，例如：
+
+```zsh
+IMAGEPEEK_CODESIGN_IDENTITY="Apple Development: Your Name" ./scripts/package-release.sh
+```
 
 ## 发布前人工验收
 

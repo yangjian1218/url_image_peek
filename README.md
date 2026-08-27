@@ -34,7 +34,7 @@ ImagePeek 是一款原生 macOS 菜单栏工具。它读取当前选中的图片
 
 ## 下载与安装
 
-1. 在 [Releases](https://github.com/yangjian1218/url_image_peek/releases) 下载最新的 `ImagePeek-x.y.z-unsigned.zip`。
+1. 在 [Releases](https://github.com/yangjian1218/url_image_peek/releases) 下载最新的 `ImagePeek-x.y.z-development-signed.zip`。
 2. 解压后，将 `ImagePeek.app` 拖入“应用程序”文件夹。
 3. 首次运行时，按住 Control 点击 `ImagePeek.app`，选择“打开”，再确认“打开”。这是未签名测试版的正常 macOS 安全提示。
 4. ImagePeek 是菜单栏应用，不会出现在 Dock 中。请在菜单栏寻找它的蓝色“图片 + 放大镜”图标。

@@ -218,16 +218,34 @@ enum PreviewShortcutResolver {
     }
 }
 
+enum PreviewActionFeedback: Equatable {
+    case copied
+    case copyFailed
+
+    static let duration: TimeInterval = 1
+
+    var message: String {
+        switch self {
+        case .copied:
+            return "图片已复制"
+        case .copyFailed:
+            return "图片复制失败"
+        }
+    }
+}
+
 final class PreviewPanelController {
     private let panel: NSPanel
     private let contentView = NSView()
     private let scrollView = NSScrollView()
     private let imageView = ZoomableImageView()
     private let imageInfoLabel = NSTextField(labelWithString: "")
+    private let feedbackLabel = NSTextField(labelWithString: "")
     private var panelSize = PreviewPanelLayout.defaultSize
     private var isExpanded = false
     private var lastCellFrame: CGRect?
     private var lastFallbackPoint: CGPoint?
+    private var feedbackHideWorkItem: DispatchWorkItem?
 
     init() {
         panel = NSPanel(
@@ -265,8 +283,18 @@ final class PreviewPanelController {
         imageInfoLabel.layer?.cornerRadius = 4
         imageInfoLabel.frame = PreviewImageInfo.captionFrame(containerSize: panelSize)
 
+        feedbackLabel.alignment = .center
+        feedbackLabel.textColor = .white
+        feedbackLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        feedbackLabel.wantsLayer = true
+        feedbackLabel.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.65).cgColor
+        feedbackLabel.layer?.cornerRadius = 6
+        feedbackLabel.isHidden = true
+        feedbackLabel.ignoresMultiClick = true
+
         contentView.addSubview(scrollView)
         contentView.addSubview(imageInfoLabel)
+        contentView.addSubview(feedbackLabel)
         panel.contentView = contentView
     }
 
@@ -349,7 +377,30 @@ final class PreviewPanelController {
     }
 
     func hide() {
+        feedbackHideWorkItem?.cancel()
+        feedbackLabel.isHidden = true
         panel.orderOut(nil)
+    }
+
+    func showFeedback(_ feedback: PreviewActionFeedback) {
+        feedbackHideWorkItem?.cancel()
+        feedbackLabel.stringValue = feedback.message
+        feedbackLabel.sizeToFit()
+        let minimumWidth: CGFloat = 108
+        let width = max(minimumWidth, feedbackLabel.frame.width + 28)
+        let height: CGFloat = 30
+        feedbackLabel.frame = CGRect(
+            x: (contentView.bounds.width - width) / 2,
+            y: max(36, contentView.bounds.height - 84),
+            width: width,
+            height: height
+        )
+        feedbackLabel.isHidden = false
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.feedbackLabel.isHidden = true
+        }
+        feedbackHideWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + PreviewActionFeedback.duration, execute: workItem)
     }
 
     private func applyZoom(_ scale: CGFloat) {
@@ -394,6 +445,13 @@ final class PreviewPanelController {
     private func layoutContent() {
         scrollView.frame = contentView.bounds
         imageInfoLabel.frame = PreviewImageInfo.captionFrame(containerSize: contentView.bounds.size)
+        if !feedbackLabel.isHidden {
+            let width = feedbackLabel.frame.width
+            feedbackLabel.frame.origin = CGPoint(
+                x: (contentView.bounds.width - width) / 2,
+                y: max(36, contentView.bounds.height - 84)
+            )
+        }
     }
 
     private func updateCaption(

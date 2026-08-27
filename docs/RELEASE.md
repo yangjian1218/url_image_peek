@@ -11,15 +11,15 @@
 脚本会：
 
 1. 执行开发签名的 Release 构建，并验证 App 签名。
-2. 读取 App 的版本号并生成 `artifacts/ImagePeek-0.1.3-development-signed.zip`。
-3. 生成同目录的 SHA-256 校验文件 `ImagePeek-0.1.3-development-signed.zip.sha256`。
+2. 读取 App 的版本号并生成 `artifacts/ImagePeek-x.y.z-development-signed.zip`。
+3. 生成同目录的 SHA-256 校验文件 `ImagePeek-x.y.z-development-signed.zip.sha256`。
 4. 验证 ZIP 可完整读取，且只包含 `ImagePeek.app`。
 
 发布前应在终端执行：
 
 ```zsh
-shasum -a 256 artifacts/ImagePeek-0.1.3-development-signed.zip
-cat artifacts/ImagePeek-0.1.3-development-signed.zip.sha256
+shasum -a 256 artifacts/ImagePeek-x.y.z-development-signed.zip
+cat artifacts/ImagePeek-x.y.z-development-signed.zip.sha256
 ```
 
 两行哈希必须相同。上传 ZIP 与对应 `.sha256` 文件至同一个 GitHub Release。

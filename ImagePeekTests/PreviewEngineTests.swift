@@ -200,6 +200,12 @@ final class PreviewEngineTests: XCTestCase {
         XCTAssertNil(PreviewShortcutResolver.shortcut(keyCode: 35, modifiers: []))
     }
 
+    func testCopyFeedbackUsesOneSecondToastForSuccessAndFailure() {
+        XCTAssertEqual(PreviewActionFeedback.copied.message, "图片已复制")
+        XCTAssertEqual(PreviewActionFeedback.copyFailed.message, "图片复制失败")
+        XCTAssertEqual(PreviewActionFeedback.duration, 1.0)
+    }
+
     func testSettingsStorePersistsAndRestoresSettings() {
         let suiteName = "ImagePeekTests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

@@ -492,9 +492,13 @@ private final class PreviewRuntimeController {
     }
 
     private func copyPreviewImage() {
-        guard let image = displayedImage else { return }
+        guard let image = displayedImage else {
+            panelController.showFeedback(.copyFailed)
+            return
+        }
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects([image])
+        let didWrite = NSPasteboard.general.writeObjects([image])
+        panelController.showFeedback(didWrite ? .copied : .copyFailed)
     }
 
     private func openPreviewSource() {

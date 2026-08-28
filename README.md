@@ -30,6 +30,8 @@ ImagePeek 是一款轻量的 macOS 菜单栏工具，帮助你在处理商品、
 
 其他应用的框选能力取决于其是否向 macOS 辅助功能公开选中文本。
 
+> ImagePeek 当前仅支持 macOS。如果你希望使用 Windows 版本，欢迎通过 [功能建议 Issue](https://github.com/yangjian1218/url_image_peek/issues/new?template=feature_request.md) 说明你的应用、审核场景和最需要的功能。Star 和来自真实工作流的 Issue 会作为后续评估 Windows 版本的重要参考，但不代表已经承诺开发时间。
+
 ## 下载与安装
 
 请前往 [Releases](https://github.com/yangjian1218/url_image_peek/releases) 下载最新版本。
@@ -47,7 +49,7 @@ ImagePeek 不使用屏幕录制、OCR、广告分析或开发者服务器。它�
 
 ## 反馈与建议
 
-欢迎通过 GitHub 提交 [问题反馈](https://github.com/yangjian1218/url_image_peek/issues/new?template=bug_report.md) 或 [功能建议](https://github.com/yangjian1218/url_image_peek/issues/new?template=feature_request.md)。请勿提交真实图片 URL、表格内容、Cookie、密钥或其他敏感信息。
+欢迎通过 GitHub 提交 [问题反馈](https://github.com/yangjian1218/url_image_peek/issues/new?template=bug_report.md) 或 [功能建议](https://github.com/yangjian1218/url_image_peek/issues/new?template=feature_request.md)。如果你希望支持 Windows，请在功能建议中说明所用表格应用和真实工作流；Star 与 Issue 会帮助作者评估后续优先级。请勿提交真实图片 URL、表格内容、Cookie、密钥或其他敏感信息。
 
 ## 支持开发
 
